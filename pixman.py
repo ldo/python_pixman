@@ -11,6 +11,7 @@ import ctypes as ct
 import qahirah
 
 pixman = ct.cdll.LoadLibrary("libpixman-1.so.0")
+libc = ct.cdll.LoadLibrary("libc.so.6")
 
 class PIXMAN :
     "useful definitions adapted from pixman-1/pixman.h. You will need to use the" \
@@ -29,6 +30,7 @@ class PIXMAN :
     fixed_1_16_t = ct.c_uint
     fixed_16_16_t = ct.c_int
     fixed_t = fixed_16_16_t
+    fixed_t_ptr = ct.POINTER(fixed_t)
 
     fixed_to_int = lambda f : round(f / 65536)
     int_to_fixed = lambda i : i * 65536
@@ -188,7 +190,7 @@ class PIXMAN :
     REGION_IN = 1
     REGION_PART = 2
 
-    # TODO: region16
+    # TODO: region16?
 
     class region32_data_t(ct.Structure) :
         _fields_ = \
@@ -467,10 +469,8 @@ pixman.pixman_image_unref.restype = ct.c_bool
 pixman.pixman_image_unref.argtypes = (ct.c_void_p,)
 pixman.pixman_image_set_destroy_function.restype = None
 pixman.pixman_image_set_destroy_function.argtypes = (ct.c_void_p, PIXMAN.image_destroy_func_t, ct.c_void_p)
-pixman.pixman_image_get_destroy_data.restype = ct.c_void_p
+pixman.pixman_image_get_destroy_data.restype = ct.c_void_p # not used
 pixman.pixman_image_get_destroy_data.argtypes = (ct.c_void_p,)
-pixman.pixman_image_set_clip_region.restype = ct.c_bool
-pixman.pixman_image_set_clip_region.argtypes = (ct.c_void_p, ct.c_void_p)
 pixman.pixman_image_set_clip_region32.restype = ct.c_bool
 pixman.pixman_image_set_clip_region32.argtypes = (ct.c_void_p, ct.c_void_p)
 pixman.pixman_image_set_has_client_clip.restype = None
@@ -519,6 +519,11 @@ pixman.pixman_image_composite32.restype = None
 pixman.pixman_image_composite32.argtypes = (PIXMAN.op_t, ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int)
 
 # TODO: glyphs
+
+libc.malloc.restype = ct.c_void_p
+libc.malloc.argtypes = (ct.c_size_t,)
+libc.free.restype = None
+libc.free.argtypes = (ct.c_void_p,)
 
 #+
 # Higher-level stuff follows
@@ -649,7 +654,7 @@ class Region :
     #end __del__
 
     def translate(offset) :
-        offset = Vector.from_tuple(offset)
+        offset = Point.from_tuple(offset)
         assert offset.isint()
         pixman.pixman_region32_translate(ct.byref(self._region), offset.x, offset.y)
         return \
@@ -738,7 +743,7 @@ class Region :
     #end inverse
 
     def contains_point(self, point, want_box = False) :
-        point = Vector.from_tuple(point)
+        point = Point.from_tuple(point)
         assert point.isint()
         if want_box :
             box = ct.pointer(PIXMAN.box32_t())
@@ -899,13 +904,116 @@ def format_supported_source(format) :
         pixman.pixman_format_supported_source(format)
 #end format_supported_source
 
+class Filter :
+    "an array of Pixman filter coefficients. Do not instantiate directly; use one of the" \
+    " create methods."
+
+    __slots__ = ("_values", "_nr_values", "_separable") # to forestall typos
+
+    def __init__(self, _values, _nr_values, _separable) :
+        self._values = _values
+        self._nr_values = _nr_values
+        self._separable = _separable
+    #end __init__
+
+    def __del__(self) :
+        if self._values != None :
+            libc.free(self._values)
+            self._values = None
+        #end if
+    #end __del__
+
+    @staticmethod
+    def create_from_sequence(values) :
+        "creates a general convolution Filter from a sequence of coefficients." \
+        " The first two numbers must be the integer width and height of the convolution" \
+        " kernel."
+        nr_values = len(values)
+        assert nr_values > 2
+        width = values[0]
+        height = values[1]
+        assert \
+            (
+                isinstance(width, int)
+            and
+                isinstance(height, int)
+            and
+                width > 0
+            and
+                height > 0
+            and
+                nr_values == width * height + 2
+            )
+        c_values = ct.malloc(nr_values * ct.sizeof(PIXMAN.fixed_t))
+        if c_values == None :
+            raise MemoryError("unable to allocate filter array")
+        #end if
+        c_values = ct.cast(c_values, PIXMAN.fixed_t_ptr)
+        c_values[0] = PIXMAN.int_to_fixed(width)
+        c_values[1] = PIXMAN.int_to_fixed(height)
+        for i in range(2, nr_values) :
+            c_values[i] = PIXMAN.double_to_fixed(values[i])
+        #end for
+        return \
+            Filter(c_values, nr_values, False)
+    #end create_from_sequence
+
+    @staticmethod
+    def create_separable_convolution(scale, reconstruct, sample, subsample_bits) :
+        "creates a separable convolution filter from the specified settings:" \
+        " scale is a Point, reconstruct and sample are pairs of PIXMAN.KERNEL_xxx" \
+        " values, and subsample_bits is a pair of integer number of bits to shift."
+        scale = Point.from_tuple(scale).to_pixman_fixed()
+        subsample_bits = Point.from_tuple(subsample_bits)
+        assert subsample_bits.isint()
+        n_values = ct.c_int()
+        values = pixman.pixman_filter_create_separable_convolution \
+          (
+            ct.byref(n_values),
+            scale.x,
+            scale.y,
+            reconstruct[0],
+            reconstruct[1],
+            sample[0],
+            sample[1],
+            subsample_bits.x,
+            subsample_bits.y,
+          )
+        if values == None :
+            raise MemoryError("unable to allocate separable convolution filter")
+        #end if
+        return \
+            Filter(values, n_values.value, True)
+    #end create_separable_convolution
+
+#end Filter
+
 class Image :
     "wrapper for a Pixman image. Do not instantiate directly; use the create methods."
 
-    __slots__ = ("_pmobj",) # to forestall typos
+    __slots__ = \
+        (
+            "_pmobj",
+            "_destroy_func",
+            "_destroy_func_data",
+            "_memory_read_func",
+            "_memory_write_func",
+            # need to keep references to ctypes-wrapped functions
+            # so they don’t disappear prematurely:
+            "_wrap_destroy_func",
+            "_wrap_memory_read_func",
+            "_wrap_memory_write_func",
+        ) # to forestall typos
 
     def __init__(self, _pmobj) :
         self._pmobj = _pmobj
+        self._destroy_func = None
+        self._destroy_func_data = None
+        self._memory_read_func = None
+        self._memory_write_func = None
+        self._wrap_destroy_func = None
+        self._wrap_memory_read_func = None
+        self._wrap_memory_write_func = None
     #end __init__
 
     def __del__(self) :
@@ -954,7 +1062,8 @@ class Image :
     #end create_conical_gradient
 
     @staticmethod
-    def create_bits(format, width, height, bits, rowstride_bytes, clear = True) :
+    def create_bits(format, width, height, bits, rowstride_bytes, clear) :
+        "low-level routine which expects bits to be a ctypes.c_void_p."
         return \
             Image \
               (
@@ -963,8 +1072,235 @@ class Image :
               )
     #end create_bits
 
-    # more TBD
+    @property
+    def destroy_function(self) :
+        "the destroy function and associated user data."
+        return \
+            (self._destroy_function, self._destroy_function_data)
+    #end destroy_function
+
+    @destroy_function.setter
+    def destroy_function(self, destroy_function_and_data) :
+        self.set_destroy_function(destroy_function_and_data[0], destroy_function_and_data[1])
+    #end destroy_function
+
+    def set_destroy_function(self, function, data) :
+        "sets a new destroy_function. Useful for method chaining; otherwise just" \
+        " assign to the destroy_function property."
+
+        def wrap_destroy_function(_pmobj, _) :
+            function(self, data)
+        #end wrap_destroy_function
+
+    #begin set_destroy_function
+        self._destroy_function = function
+        self._destroy_function_data = data
+        self._wrap_destroy_function = PIXMAN.image_destroy_func_t(wrap_destroy_function)
+        pixman.pixman_image_set_destroy_function(self._pmobj, self._wrap_destroy_function, None)
+        return \
+            self
+    #end set_destroy_function
+
+    def set_clip_region(self, region) :
+        if not isinstance(region, Region) :
+            raise TypeError("region must be a Region")
+        #end if
+        if not pixman.pixman_image_set_clip_region32(self._pmobj, ct.byref(region._pmregion)) :
+            raise MemoryError("Pixman couldn’t set clip region")
+        #end if
+        return \
+            self
+    #end set_clip_region
+
+    def set_has_client_clip(self, client_clip) :
+        pixman.pixman_image_set_has_client_clip(self._pmobj, client_clip)
+        return \
+            self
+    #end set_has_client_clip
+
+    # TODO: set_transform
+
+    def set_repeat(self, repeat) :
+        "sets a new PIXMAN.REPEAT_xxx value."
+        pixman.pixman_image_set_repeat(self._pmobj, repeat)
+        return \
+            self
+    #end set_repeat
+
+    def set_filter(self, filter, params) :
+        "sets the filter for the image. filter is a PIXMAN.FILTER_xxx value, while params" \
+        " must be a Filter object or None, depending on filter."
+        if (
+                (filter in (PIXMAN.FILTER_CONVOLUTION, PIXMAN.FILTER_SEPARABLE_CONVOLUTION))
+            !=
+                (params != None)
+        ) :
+            raise ValueError("params must be specified for convolution types but not otherwise")
+        #end if
+        if params != None :
+            if not isinstance(params, Filter) :
+                raise TypeError("params must be a Filter")
+            #end if
+            if params._separable != (filter == PIXMAN.FILTER_SEPARABLE_CONVOLUTION) :
+                raise ValueError("convolution separability mismatch")
+            #end if
+            values = params._values
+            nr_values = params._nr_values
+        else :
+            values = None
+            nr_values = 0
+        #end if
+        if not pixman.pixman_image_set_filter(self._pmobj, filter, values, nr_values) :
+            raise RuntimeError("Pixman failed to set filter")
+        #end if
+        # Pixman copies the params array, so I don’t need to keep a reference
+        return \
+            self
+    #end set_filter
+
+    def set_source_clipping(self, source_clipping) :
+        pixman.pixman_image_set_source_clipping(self._pmobj, source_clipping)
+        return \
+            self
+    #end set_source_clipping
+
+    def set_alpha_map(self, alpha_map, origin) :
+        if not isinstance(alpha_map, Image) :
+            raise TypeError("alpha_map must be an Image")
+        #end if
+        origin = Vector.from_tuple(origin)
+        assert origin.isint()
+        pixman.pixman_image_set_alpha_map(self._pmobj, alpha_map._pmobj, origin.x, origin.y)
+        return \
+            self
+    #end set_alpha_map
+
+    @property
+    def component_alpha(self) :
+        "whether the mask defines separate a, r, g, b alphas as opposed to a common alpha."
+        return \
+            pixman.pixman_image_get_component_alpha(self._pmobj)
+    #end component_alpha
+
+    @component_alpha.setter
+    def component_alpha(self, component_alpha) :
+        self.set_component_alpha(component_alpha)
+    #end component_alpha
+
+    def set_component_alpha(self, component_alpha) :
+        "sets a new component_alpha. Useful for method chaining; otherwise just" \
+        " assign to the component_alpha property."
+        pixman.pixman_image_set_component_alpha(self._pmobj, component_alpha)
+        return \
+            self
+    #end set_component_alpha
+
+    @property
+    def read_memory_func(self) :
+        "the memory-read accessor."
+        return \
+            self._memory_read_func
+    #end read_memory_func
+
+    @read_memory_func.setter
+    def read_memory_func(self, read_func) :
+        self.set_read_memory_func(read_func)
+    #end read_memory_func
+
+    def _set_accessors(self) :
+        # actually calls Pixman to set the read and write accessors.
+        pixman.pixman_image_set_accessors(self._pmobj, self._wrap_memory_read_func, self._wrap_memory_write_func)
+        return \
+            self
+    #end _set_accessors
+
+    def _set_read_memory_func(self, read_func) :
+        self._memory_read_func = read_func
+        self._wrap_memory_read_func = PIXMAN.read_memory_func_t(read_func)
+    #end _set_read_memory_func
+
+    def set_read_memory_func(self, read_func) :
+        "sets a new memory-read accessor. Useful for method chaining; otherwise just" \
+        " assign to the read_memory_func property."
+        self._set_read_memory_func(read_func)
+        return \
+            self._set_accessors()
+    #end set_read_memory_func
+
+    @property
+    def write_memory_func(self) :
+        "the memory-write accessor."
+        return \
+            self._memory_write_func
+    #end write_memory_func
+
+    @write_memory_func.setter
+    def write_memory_func(self, write_func) :
+        self.set_write_memory_func(write_func)
+    #end write_memory_func
+
+    def _set_write_memory_func(self, write_func) :
+        self._memory_write_func = write_func
+        self._wrap_memory_write_func = PIXMAN.write_memory_func_t(write_func)
+    #end _set_write_memory_func
+
+    def set_write_memory_func(self, write_func) :
+        "sets a new memory-write accessor. Useful for method chaining; otherwise just" \
+        " assign to the write_memory_func property."
+        self._set_write_memory_func(write_func)
+        return \
+            self._set_accessors()
+    #end set_write_memory_func
+
+    def set_accessors(self, read_func, write_func) :
+        self._set_read_memory_func(read_func)
+        self._set_write_memory_func(write_func)
+        return \
+            self._set_accessors()
+    #end set_accessors
+
+    # TODO: set_indexed
+
+    @property
+    def data(self) :
+        return \
+            pixman.pixman_image_get_data(self._pmobj)
+    #end data
+
+    @property
+    def width(self) :
+        return \
+            pixman.pixman_image_get_width(self._pmobj)
+    #end width
+
+    @property
+    def height(self) :
+        return \
+            pixman.pixman_image_get_height(self._pmobj)
+    #end height
+
+    @property
+    def stride(self) :
+        return \
+            pixman.pixman_image_get_stride(self._pmobj)
+    #end stride
+
+    @property
+    def depth(self) :
+        return \
+            pixman.pixman_image_get_depth(self._pmobj)
+    #end depth
+
+    @property
+    def format(self) :
+        return \
+            pixman.pixman_image_get_format(self._pmobj)
+    #end format
+
+    # TODO: fill rectangles/boxes, compositing
+
+    # TODO: trapezoids
 
 #end Image
 
-# more TBD
+# TODO: glyphs
