@@ -30,7 +30,21 @@ class PIXMAN :
     fixed_16_16_t = ct.c_int
     fixed_t = fixed_16_16_t
 
-    # TODO: fixed constants
+    fixed_to_int = lambda f : round(f / 65536)
+    int_to_fixed = lambda i : i * 65536
+    fixed_to_double = lambda f : f / 65536
+    double_to_fixed = lambda f : f * 65536
+    fixed_e = 1 # closest nonzero value to zero
+    fixed_1 = 1 << 16
+    fixed_1_minus_e = fixed_1 - fixed_e
+    fixed_minus_1 = - fixed_1
+    fixed_frac = lambda f : f & fixed_1_minus_e
+    fixed_floor = lambda f : f & ~fixed_1_minus_e
+    fixed_ceil = lambda f : fixed_floor(f + fixed_1_minus_e)
+    fixed_fraction = fixed_frac
+    fixed_mod_2 = lambda f : f & (fixed_1 | fixed_1_minus_e)
+    max_fixed_48_16 = 0x7fffffff # huh?
+    min_fixed_48_16 = - max_fixed_48_16 - 1
 
     class color_t(ct.Structure) :
         _fields_ = \
@@ -168,7 +182,53 @@ class PIXMAN :
     OP_HSL_COLOR = 0x3d
     OP_HSL_LUMINOSITY = 0x3e
 
-    # TODO: region16, region32
+    region_overlap_t = ct.c_uint
+    # values for region_overlap_t:
+    REGION_OUT = 0
+    REGION_IN = 1
+    REGION_PART = 2
+
+    # TODO: region16
+
+    class region32_data_t(ct.Structure) :
+        _fields_ = \
+            [
+                ("size", ct.c_long),
+                ("numRects", ct.c_long),
+              # ("rects", box32_t * size),
+            ]
+    #end region32_data_t
+    region32_data_t_ptr = ct.POINTER(region32_data_t)
+
+    class rectangle32_t(ct.Structure) :
+        _fields_ = \
+            [
+                ("x", ct.c_int),
+                ("y", ct.c_int),
+                ("width", ct.c_int),
+                ("height", ct.c_int),
+            ]
+    #end rectangle32_t
+
+    class box32_t(ct.Structure) :
+        _fields_ = \
+            [
+                ("x1", ct.c_int),
+                ("y1", ct.c_int),
+                ("x2", ct.c_int),
+                ("y2", ct.c_int),
+            ]
+    #end box32_t
+    box32_t_ptr = ct.POINTER(box32_t)
+
+    class region32_t(ct.Structure) :
+        pass
+    region32_t._fields_ = \
+        [
+            ("extents", box32_t),
+            ("data", region32_data_t_ptr),
+        ]
+    #end region32_t
 
     # Images
 
@@ -323,8 +383,59 @@ class PIXMAN :
 
     # TODO: glyphs
 
-    # more TBD
 #end PIXMAN
+
+# TODO: fixed-point and floating-point transformations
+# TODO: 16-bit regions?
+
+pixman.pixman_region32_init.restype = None
+pixman.pixman_region32_init.argtypes = (ct.c_void_p,)
+pixman.pixman_region32_init_rect.restype = None
+pixman.pixman_region32_init_rect.argtypes = (ct.c_void_p, ct.c_int, ct.c_int, ct.c_uint, ct.c_uint)
+pixman.pixman_region32_init_rects.restype = ct.c_bool
+pixman.pixman_region32_init_rects.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_int)
+pixman.pixman_region32_init_with_extents.restype = None
+pixman.pixman_region32_init_with_extents.argtypes = (ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_init_from_image.restype = None
+pixman.pixman_region32_init_from_image.argtypes = (ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_fini.restype = None
+pixman.pixman_region32_fini.argtypes = (ct.c_void_p,)
+pixman.pixman_region32_translate.restype = None
+pixman.pixman_region32_translate.argtypes = (ct.c_void_p, ct.c_int, ct.c_int)
+pixman.pixman_region32_copy.restype = ct.c_bool
+pixman.pixman_region32_copy.argtypes = (ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_intersect.restype = ct.c_bool
+pixman.pixman_region32_intersect.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_union.restype = ct.c_bool
+pixman.pixman_region32_union.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_intersect_rect.restype = ct.c_bool
+pixman.pixman_region32_intersect_rect.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_int, ct.c_uint, ct.c_uint)
+pixman.pixman_region32_union_rect.restype = ct.c_bool
+pixman.pixman_region32_union_rect.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_int, ct.c_uint, ct.c_uint)
+pixman.pixman_region32_subtract.restype = ct.c_bool
+pixman.pixman_region32_subtract.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_inverse.restype = ct.c_bool
+pixman.pixman_region32_inverse.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_contains_point.restype = ct.c_bool
+pixman.pixman_region32_contains_point.argtypes = (ct.c_void_p, ct.c_int, ct.c_int, ct.c_void_p)
+pixman.pixman_region32_contains_rectangle.restype = PIXMAN.region_overlap_t
+pixman.pixman_region32_contains_rectangle.argtypes = (ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_not_empty.restype = ct.c_bool
+pixman.pixman_region32_not_empty.argtypes = (ct.c_void_p,)
+pixman.pixman_region32_extents.restype = PIXMAN.box32_t_ptr
+pixman.pixman_region32_extents.argtypes = (ct.c_void_p,)
+pixman.pixman_region32_n_rects.restype = ct.c_int
+pixman.pixman_region32_n_rects.argtypes = (ct.c_void_p,)
+pixman.pixman_region32_rectangles.restype = ct.c_void_p
+pixman.pixman_region32_rectangles.argtypes = (ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_equal.restype = ct.c_bool
+pixman.pixman_region32_equal.argtypes = (ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_selfcheck.restype = ct.c_bool
+pixman.pixman_region32_selfcheck.argtypes = (ct.c_void_p,)
+pixman.pixman_region32_reset.restype = None
+pixman.pixman_region32_reset.argtypes = (ct.c_void_p, ct.c_void_p)
+pixman.pixman_region32_clear.restype = None
+pixman.pixman_region32_clear.argtypes = (ct.c_void_p,)
 
 pixman.pixman_blt.restype = ct.c_bool
 pixman.pixman_blt.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int)
@@ -332,9 +443,6 @@ pixman.pixman_fill.restype = ct.c_bool
 pixman.pixman_fill.argtypes = (ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_uint)
 pixman.pixman_version.restype = ct.c_int
 pixman.pixman_version_string.restype = ct.c_char_p
-
-# TODO: fixed-point and floating-point transformations
-# TODO: 16-bit and 32-bit regions
 
 pixman.pixman_format_supported_destination.restype = ct.c_bool
 pixman.pixman_format_supported_destination.argtypes = (ct.c_uint,)
@@ -438,8 +546,8 @@ class Point(qahirah.Vector) :
         return \
             Point \
               (
-                x = p.x / 65536,
-                y = p.y / 65536,
+                x = PIXMAN.fixed_t_double(p.x),
+                y = PIXMAN.fixed_t_double(p.y),
               )
     #end from_pixman_fixed
 
@@ -447,12 +555,272 @@ class Point(qahirah.Vector) :
         return \
             PIXMAN.point_fixed_t \
               (
-                x = round(self.x * 65536),
-                y = round(self.y * 65536),
+                x = PIXMAN.double_to_fixed(self.x),
+                y = PIXMAN.double_to_fixed(self.y),
               )
     #end to_pixman_fixed
 
 #end Point
+
+class Rect(qahirah.Rect) :
+    "augment Rect with additional Pixman-specific functionality."
+
+    __slots__ = () # to forestall typos
+
+    @staticmethod
+    def from_pixman_box(b) :
+        return \
+            Rect.from_corners((b.x1, b.y1), (b.x2, b.y2))
+    #end from_pixman_box
+
+    def to_pixman_box(self) :
+        return \
+            PIXMAN.box32_t(self.left, self.top, self.right, self.bottom)
+    #end to_pixman_box
+
+#end Rect
+
+class Region :
+    "wrapper for a Pixman region32_t. Do not instantiate directly; use one of the create methods."
+
+    __slots__ = ("_region",) # to forestall typos
+
+    def __init__(self) :
+        self._region = PIXMAN.region32_t()
+    #end __init__
+
+    @staticmethod
+    def create() :
+        result = Region()
+        pixman.pixman_region32_init(ct.byref(result._region))
+        return \
+            result
+    #end create
+
+    @staticmethod
+    def create_rect(rect) :
+        result = Region()
+        assert rect.isint()
+        pixman.pixman_region32_init_rect(ct.byref(result._region), rect.left, rect.top, rect.width, rect.height)
+        return \
+            result
+    #end create_rect
+
+    @staticmethod
+    def create_rects(rects) :
+        result = Region()
+        nr_rects = len(rects)
+        c_rects = (PIXMAN.box32_t * nr_rects)()
+        for i in range(nr_rects) :
+            assert rects[i].isint()
+            c_rects[i] = rects[i].to_pixman_box()
+        #end for
+        validated = pixman.pixman_region32_init_rects(ct.byref(result._region), ct.byref(c_rects), nr_rects)
+        return \
+            (result, validated)
+    #end create_rects
+
+    @staticmethod
+    def create_with_extents(extents) :
+        result = Region()
+        assert extents.isint()
+        c_extents = extents.to_pixman_box()
+        pixman.pixman_region32_init_with_extents(ct.byref(result._region), ct.byref(c_extents))
+        return \
+            result
+    #end create_with_extents
+
+    @staticmethod
+    def create_from_image(image) :
+        if not isinstance(image, Image) :
+            raise TypeError("image must be an Image")
+        #end if
+        result = Region()
+        pixman.pixman_region32_init_from_image(ct.byref(result._region), image._pmobj)
+        return \
+            result
+    #end create_from_image
+
+    def __del__(self) :
+        if self._region != None :
+            pixman.pixman_region32_fini(ct.byref(self._region))
+            self._region = None
+        #end if
+    #end __del__
+
+    def translate(offset) :
+        offset = Vector.from_tuple(offset)
+        assert offset.isint()
+        pixman.pixman_region32_translate(ct.byref(self._region), offset.x, offset.y)
+        return \
+            self
+    #end translate
+
+    def copy(self, dest) :
+        if not isinstance(dest, Region) :
+            raise TypeError("dest must be a Region")
+        #end if
+        if not pixman.pixman_region32_copy(ct.byref(dest._region), ct.byref(self._region)) :
+            raise MemoryError("Pixman couldn’t copy region")
+        #end if
+        return \
+            self
+    #end copy
+
+    def intersect(reg1, reg2, new_reg) :
+        if not isinstance(reg1, Region) or not isinstance(new_reg, Region) :
+            raise TypeError("args must be Regions")
+        #end if
+        if not pixman.pixman_region32_intersect(ct.byref(new_reg._region), ct.byref(reg1._region), ct.byref(reg2._region)) :
+            raise MemoryError("Pixman couldn’t intersect regions")
+        #end if
+        return \
+            self
+    #end intersect
+
+    def union(reg1, reg2, new_reg) :
+        if not isinstance(reg1, Region) or not isinstance(new_reg, Region) :
+            raise TypeError("args must be Regions")
+        #end if
+        if not pixman.pixman_region32_union(ct.byref(new_reg._region), ct.byref(reg1._region), ct.byref(reg2._region)) :
+            raise MemoryError("Pixman couldn’t union regions")
+        #end if
+        return \
+            self
+    #end intersect
+
+    def intersect_rect(self, rect, dest) :
+        if not isinstance(dest, Region) :
+            raise TypeError("dest must be a Region")
+        #end if
+        assert rect.isint()
+        if not pixman.pixman_region32_intersect_rect(ct.byref(dest._region), ct.byref(self._region), rect.left, rect.top, rect.width, rect.height) :
+            raise MemoryError("Pixman couldn’t intersect region")
+        #end if
+        return \
+            self
+    #end intersect_rect
+
+    def union_rect(self, rect, dest) :
+        if not isinstance(dest, Region) :
+            raise TypeError("dest must be a Region")
+        #end if
+        assert rect.isint()
+        if not pixman.pixman_region32_union_rect(ct.byref(dest._region), ct.byref(self._region), rect.left, rect.top, rect.width, rect.height) :
+            raise MemoryError("Pixman couldn’t union region")
+        #end if
+        return \
+            self
+    #end union_rect
+
+    def subtract(reg1, reg2, new_reg) :
+        if not isinstance(reg1, Region) or not isinstance(new_reg, Region) :
+            raise TypeError("args must be Regions")
+        #end if
+        if not pixman.pixman_region32_subtract(ct.byref(new_reg._region), ct.byref(reg1._region), ct.byref(reg2._region)) :
+            raise MemoryError("Pixman couldn’t subtract regions")
+        #end if
+        return \
+            self
+    #end subtract
+
+    def inverse(self, inv_rect, new_reg) :
+        if not isinstance(new_reg, Region) :
+            raise TypeError("new_reg must be Region")
+        #end if
+        assert inv_rect.isint()
+        c_inv_rect = inv_rect.to_pixman_box()
+        if not pixman.pixman_region32_inverse(ct.byref(self._region), ct.byref(c_inv_rect), ct.byref(new_reg._region)) :
+            raise MemoryError("Pixman couldn’t invert region")
+        #end if
+        return \
+            self
+    #end inverse
+
+    def contains_point(self, point, want_box = False) :
+        point = Vector.from_tuple(point)
+        assert point.isint()
+        if want_box :
+            box = ct.pointer(PIXMAN.box32_t())
+        else :
+            box = None
+        #end if
+        contains = pixman.pixman_region32_contains_point(ct.byref(self._region), point.x, point.y, box)
+        if want_box :
+            result = (contains, Rect.from_pixman_box(box.contents))
+        else :
+            result = contains
+        #end if
+        return \
+            result
+    #end contains_point
+
+    def contains_rectangle(self, prect) :
+        c_prect = prect.to_pixman_box()
+        return \
+            pixman.pixman_region32_contains_rectangle(ct.byref(self._region), ct.byref(c_prect))
+    #end contains_rectangle
+
+    @property
+    def not_empty(self) :
+        return \
+            pixman.pixman_region32_not_empty(ct.byref(self._region))
+    #end not_empty
+
+    @property
+    def extents(self) :
+        return \
+            Rect.from_pixman_box(pixman.pixman_region32_extents(ct.byref(self._region)).contents)
+    #end extents
+
+    @property
+    def n_rects(self) :
+        "the number of rectangles making up the Region."
+        return \
+            pixman.pixman_region32_n_rects(ct.byref(self._region))
+    #end n_rects
+
+    def rectangles(self) :
+        "iterates over the rectangles making up the Region."
+        nr_rects = ct.c_int()
+        rects = pixman.pixman_region32_rectangles(ct.byref(self._region), ct.byref(nr_rects))
+        nr_rects = nr_rects.value
+        rects = ct.cast(rects, PIXMAN.box32_t_ptr)
+        for i in range(nr_rects) :
+            yield Rect.from_pixman_box(rects[i])
+        #end for
+    #end rectangles
+
+    def __eq__(rgn1, rgn2) :
+        "equality of two Regions."
+        if not isinstance(rgn2, Region) :
+            raise TypeError("args must be Regions")
+        #end if
+        return \
+            pixman.pixman_region32_equal(ct.byref(rgn1._region), ct.byref(rgn2._region))
+    #end __eq__
+
+    def selfcheck(self) :
+        if not pixman.pixman_region32_selfcheck(ct.byref(self._region)) :
+            raise RuntimeError("Region failed Pixman selfcheck")
+        #end if
+        return \
+            self
+    #end selfcheck
+
+    def reset(self, box) :
+        "resets the Region to a simple rectangle."
+        c_box = box.to_pixman_box()
+        pixman.pixman_region32_reset(ct.byref(self._region), ct.byref(c_box))
+        return \
+            self
+    #end reset
+
+    def clear(self) :
+        pixman.pixman_region32_clear(ct.byref(self._region))
+    #end clear
+
+#end Region
 
 class Colour(qahirah.Colour) :
     "augment Colour with additional Pixman-specific functionality."
@@ -498,12 +866,12 @@ class GradientStop :
     @staticmethod
     def from_pixman(gs) :
         return \
-            GradientStop(gs.x / 65536, Colour.from_pixman(gs.color))
+            GradientStop(PIXMAN.fixed_to_double(gs.x), Colour.from_pixman(gs.color))
     #end from_pixman
 
     def to_pixman(self) :
         return \
-            PIXMAN.gradient_stop_t(round(self.x * 65536), self.colour.to_pixman())
+            PIXMAN.gradient_stop_t(PIXMAN.double_to_fixed(self.x), self.colour.to_pixman())
     #end to_pixman
 
     @staticmethod
@@ -568,8 +936,8 @@ class Image :
     def create_radial_gradient(inner, outer, inner_radius, outer_radius, stops) :
         c_inner = inner.to_pixman_fixed()
         c_outer = outer.to_pixman_fixed()
-        c_inner_radius = round(inner_radius * 65536)
-        c_outer_radius = round(outer_radius * 65536)
+        c_inner_radius = PIXMAN.double_to_fixed(inner_radius)
+        c_outer_radius = PIXMAN.double_to_fixed(outer_radius)
         c_stops, nr_stops = GradientStop.to_pixman_array(stops)
         return \
             Image(pixman.pixman_image_create_radial_gradient(ct.byref(c_inner), ct.byref(c_outer), c_inner_radius, c_outer_radius, ct.byref(c_stops), nr_stops))
@@ -582,7 +950,7 @@ class Image :
         c_centre = centre.to_pixman_fixed()
         c_stops, nr_stops = GradientStop.to_pixman_array(stops)
         return \
-            Image(pixman.pixman_image_create_conical_gradient(ct.byref(c_centre), round(angle / qahirah.deg * 65536), ct.byref(stops), nr_stops))
+            Image(pixman.pixman_image_create_conical_gradient(ct.byref(c_centre), PIXMAN.double_to_fixed(angle / qahirah.deg), ct.byref(stops), nr_stops))
     #end create_conical_gradient
 
     @staticmethod
@@ -594,6 +962,8 @@ class Image :
                     (format, width, height, bits, rowstride_bytes)
               )
     #end create_bits
+
+    # more TBD
 
 #end Image
 
