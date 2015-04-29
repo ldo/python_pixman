@@ -9,6 +9,8 @@ from numbers import \
     Number
 import ctypes as ct
 import qahirah as qah
+from qahirah import \
+    CAIRO
 
 pixman = ct.cdll.LoadLibrary("libpixman-1.so.0")
 libc = ct.cdll.LoadLibrary("libc.so.6")
@@ -424,6 +426,75 @@ class PIXMAN :
     # TODO: glyphs
 
 #end PIXMAN
+
+all_format_names = frozenset \
+    (( # all names of Pixman pixel formats
+        "a8r8g8b8",
+        "x8r8g8b8",
+        "a8b8g8r8",
+        "x8b8g8r8",
+        "b8g8r8a8",
+        "b8g8r8x8",
+        "r8g8b8a8",
+        "r8g8b8x8",
+        "x14r6g6b6",
+        "x2r10g10b10",
+        "a2r10g10b10",
+        "x2b10g10r10",
+        "a2b10g10r10",
+        # sRGB
+        "a8r8g8b8_sRGB",
+        # values for format_code_t -- 24 bits per pixel
+        "r8g8b8",
+        "b8g8r8",
+        # values for format_code_t -- 16 bits per pixel
+        "r5g6b5",
+        "b5g6r5",
+        "a1r5g5b5",
+        "x1r5g5b5",
+        "a1b5g5r5",
+        "x1b5g5r5",
+        "a4r4g4b4",
+        "x4r4g4b4",
+        "a4b4g4r4",
+        "x4b4g4r4",
+        # values for format_code_t -- 8 bits per pixel
+        "a8",
+        "r3g3b2",
+        "b2g3r3",
+        "a2r2g2b2",
+        "a2b2g2r2",
+        "c8",
+        "g8",
+        "x4a4",
+        "x4c4",
+        "x4g4",
+        # values for format_code_t -- 4 bits per pixel
+        "a4",
+        "r1g2b1",
+        "b1g2r1",
+        "a1r1g1b1",
+        "a1b1g1r1",
+        "c4",
+        "g4",
+        # values for format_code_t -- 1 bit per pixel
+        "a1",
+        "g1",
+        # values for format_code_t -- YUV
+        "yuy2",
+        "yv12",
+    ))
+cairo_to_pixman_format = \
+    { # Pixman pixel formats corresponding to Cairo pixel formats
+        CAIRO.FORMAT_ARGB32 : PIXMAN.a8r8g8b8,
+        CAIRO.FORMAT_RGB24 : PIXMAN.x8r8g8b8,
+        CAIRO.FORMAT_A8 : PIXMAN.a8,
+        CAIRO.FORMAT_A1 : PIXMAN.a1,
+        CAIRO.FORMAT_RGB16_565 : PIXMAN.r5g6b5,
+        CAIRO.FORMAT_RGB30 : PIXMAN.x2r10g10b10,
+    }
+pixman_to_cairo_format = dict((cairo_to_pixman_format[k], k) for k in cairo_to_pixman_format)
+  # and mapping back the other way
 
 # TODO: fixed-point and floating-point transformations
 # Note there is only the minimum of 16-bit region support
