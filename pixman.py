@@ -1071,11 +1071,13 @@ class GradientStop :
 #end GradientStop
 
 def format_supported_destination(format) :
+    "is the format with the specified code supported for destination images."
     return \
         pixman.pixman_format_supported_destination(format)
 #end format_supported_destination
 
 def format_supported_source(format) :
+    "is the format with the specified code supported for source and mask images."
     return \
         pixman.pixman_format_supported_source(format)
 #end format_supported_source
@@ -1185,7 +1187,7 @@ class Image :
     "An Image can consist of a two-dimensional array of pixels of some given size, which" \
     " can be both read (a source or mask) and written (a destination). Or it can consist" \
     " of some solid colour, or a gradient consisting of a given sequence of colours. Solid" \
-    "and gradient images have no fixed extents, and can be sources or masks (?), but not" \
+    " and gradient images have no fixed extents, and can be sources or masks (?), but not" \
     " destinations."
 
     __slots__ = \
@@ -1224,7 +1226,7 @@ class Image :
 
     @staticmethod
     def create_solid_fill(colour) :
-        "creates an image whose content consists of a single solid Colour."
+        "creates an Image whose content consists of a single solid Colour."
         c_colour = colour.to_pixman()
         return \
             Image(pixman.pixman_image_create_solid_fill(ct.byref(c_colour)))
@@ -1232,7 +1234,7 @@ class Image :
 
     @staticmethod
     def create_linear_gradient(p1, p2, stops) :
-        "creates an image consisting of blends between the specified colours" \
+        "creates an Image consisting of blends between the specified colours" \
         " along the line connecting the two given points. stops must be a sequence" \
         " of GradientStop objects."
         c_p1 = p1.to_pixman_fixed()
@@ -1244,7 +1246,7 @@ class Image :
 
     @staticmethod
     def create_radial_gradient(inner, outer, inner_radius, outer_radius, stops) :
-        "creates an image consisting of blends between the specified colours" \
+        "creates an Image consisting of blends between the specified colours" \
         " arranged radially between the two points and corresponding radii. stops" \
         " must be a sequence of GradientStop objects."
         c_inner = inner.to_pixman_fixed()
@@ -1258,7 +1260,7 @@ class Image :
 
     @staticmethod
     def create_conical_gradient(centre, angle, stops) :
-        "creates an image consisting of blends between the specified colours" \
+        "creates an Image consisting of blends between the specified colours" \
         " arranged around a circle from the specified centre, starting and ending" \
         " at the specified angle. stops must be a sequence of GradientStop objects."
         # for consistency, I expect angle in radians, even though underlying
@@ -1597,6 +1599,12 @@ def compute_composite_region(region, src, mask, dest, src_pos, mask_pos, dest_po
 #end compute_composite_region
 
 def image_composite(op, src, mask, dest, src_pos, mask_pos, dest_pos, dimensions) :
+    "composites the specified portions of Image src through Image mask (if not None)" \
+    " onto Image dest according to operator op (a PIXMAN.OP_xxx value). src_pos is a" \
+    " Point specifying the top left corner of the portion of src to read, mask_pos" \
+    " similarly for mask (if not None), and dest_pos is the top left corner of dest" \
+    " to store the result. dimensions is a Point defining the common dimensions" \
+    " of the  portions of all the images to use."
     if (
             not isinstance(src, Image)
         or
