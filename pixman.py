@@ -1171,8 +1171,9 @@ class Image :
     #end create_conical_gradient
 
     @staticmethod
-    def create_bits(format, dimensions, bits, rowstride_bytes, clear) :
-        "low-level routine which expects bits to be a ctypes.c_void_p."
+    def create_bits(format, dimensions, bits, rowstride_bytes, clear = True) :
+        "low-level routine which expects bits to be a ctypes.c_void_p. clear is only" \
+        " meaningful if bits is None, so Pixman allocates the bits."
         width, height = Point.from_tuple(dimensions)
         return \
             Image \
@@ -1192,7 +1193,8 @@ class Image :
         result = Image \
           (
             pixman.pixman_image_create_bits_no_clear(format, width, height, address, rowstride_bytes)
-              # no_clear because array object will always be initialized
+              # thought I would use no_clear because array object will always be initialized
+              # but in fact this makes no difference for caller-allocated bits
           )
         result._arr = arr # to ensure it doesn't go away prematurely
         return \
