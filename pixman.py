@@ -1458,7 +1458,7 @@ class Image :
 
 #end Image
 
-def compute_composite_region(region, src_image, mask_image, dest_image, src_pos, mask_pos, dest_pos, dimensions) :
+def compute_composite_region(region, src, mask, dest, src_pos, mask_pos, dest_pos, dimensions) :
     # Note that Pixman does not (currently) provide a region32 version of this call.
     # Since I don’t want to add full region16 support just for this one call, I create
     # a temporary region16 and convert the result to the caller’s region32 afterwards.
@@ -1466,18 +1466,18 @@ def compute_composite_region(region, src_image, mask_image, dest_image, src_pos,
     # _pixman_compute_composite_region32 routine to do the work, then converts the
     # result to a region16 before returning it to us.
     if (
-            not isinstance(src_image, Image)
+            not isinstance(src, Image)
         or
-            mask_image != None and not isinstance(mask_image, Image)
+            mask != None and not isinstance(mask, Image)
         or
-            not isinstance(dest_image, Image)
+            not isinstance(dest, Image)
     ) :
         raise TypeError("image args must be Image objects")
     #end if
     tmp_region = PIXMAN.region16_t()
     src_pos = Point.from_tuple(src_pos).assert_isshortint()
-    if mask_image != None or mask_pos != None :
-        # “or”, not “and”: mask_pos must be specified if mask_image is specified
+    if mask != None or mask_pos != None :
+        # “or”, not “and”: mask_pos must be specified if mask is specified
         mask_pos = Point.from_tuple(mask_pos).assert_isshortint()
     else :
         mask_pos = Point(0, 0) # dummy
@@ -1485,12 +1485,12 @@ def compute_composite_region(region, src_image, mask_image, dest_image, src_pos,
     dest_pos = Point.from_tuple(dest_pos).assert_isshortint()
     dimensions = Point.from_tuple(dimensions).assert_isshortint()
     pixman.pixman_region_init(ct.byref(tmp_region))
-    if mask_image != None :
-        c_mask = mask_image._pmobj
+    if mask != None :
+        c_mask = mask._pmobj
     else :
         c_mask = None
     #end if
-    pixman.pixman_compute_composite_region(ct.byref(tmp_region), src_image._pmobj, c_mask, dest_image._pmobj, src_pos.x, src_pos.y, mask_pos.x, mask_pos.y, dest_pos.x, dest_pos.y, dimensions.x, dimensions.y)
+    pixman.pixman_compute_composite_region(ct.byref(tmp_region), src._pmobj, c_mask, dest._pmobj, src_pos.x, src_pos.y, mask_pos.x, mask_pos.y, dest_pos.x, dest_pos.y, dimensions.x, dimensions.y)
       # returns false on empty region or allocation failure. Since I cannot distinguish
       # these two cases, I ignore the result.
     nr_rects = ct.c_int()
