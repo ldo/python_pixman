@@ -1168,7 +1168,7 @@ class Image :
         c_centre = centre.to_pixman_fixed()
         c_stops, nr_stops = GradientStop.to_pixman_array(stops)
         return \
-            Image(pixman.pixman_image_create_conical_gradient(ct.byref(c_centre), PIXMAN.double_to_fixed(angle / qah.deg), ct.byref(stops), nr_stops))
+            Image(pixman.pixman_image_create_conical_gradient(ct.byref(c_centre), PIXMAN.double_to_fixed(angle / qah.deg), ct.byref(c_stops), nr_stops))
     #end create_conical_gradient
 
     @staticmethod
