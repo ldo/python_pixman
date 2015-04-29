@@ -35,7 +35,7 @@ class PIXMAN :
     fixed_to_int = lambda f : round(f / 65536)
     int_to_fixed = lambda i : i * 65536
     fixed_to_double = lambda f : f / 65536
-    double_to_fixed = lambda f : f * 65536
+    double_to_fixed = lambda f : round(f * 65536)
     fixed_e = 1 # closest nonzero value to zero
     fixed_1 = 1 << 16
     fixed_1_minus_e = fixed_1 - fixed_e
@@ -951,7 +951,8 @@ class Colour(qah.Colour) :
 #end Colour
 
 class GradientStop :
-    "representation of a Pixman gradient stop."
+    "representation of a Pixman gradient stop. x is a relative fraction in [0, 1] at which" \
+    " the specified colour is positioned."
 
     def __init__(self, x, colour) :
         if not isinstance(x, Number) or not isinstance(colour, Colour) :
