@@ -988,6 +988,21 @@ class FilterParams :
 
 #end FilterParams
 
+def blt(src_bits, dst_bits, src_stride, dst_stride, src_bpp, dst_bpp, src_pos, dest_pos, dimensions) :
+    "low-level blit routine. returns success/failure (i.e. unsupported format)."
+    src_pos = Point.from_tuple(src_pos)
+    dest_pos = Point.from_tuple(dest_pos)
+    dimensions = Point.from_tuple(dimensions)
+    return \
+        pixman.pixman_blt(src_bits, dst_bits, src_stride, dst_stride, src_bpp, dst_bpp, src_pos.x, src_pos.y, dest_pos.x, dest_pos.y, dimensions.x, dimensions.y)
+#end blt
+
+def fill(bits, stride, bpp, pos, dimensions, filler) :
+    "low-level fill routine. returns success/failure (i.e. unsupported format)."
+    return \
+        pixman.pixman_fill(bits, stride, bpp, pos.x, pos.y, dimensions.x, dimensions.y, filler)
+#end fill
+
 class Image :
     "wrapper for a Pixman image. Do not instantiate directly; use the create methods."
 
@@ -1066,7 +1081,7 @@ class Image :
     @staticmethod
     def create_bits(format, dimensions, bits, rowstride_bytes, clear) :
         "low-level routine which expects bits to be a ctypes.c_void_p."
-        width, height = Vector.from_tuple(dimensions)
+        width, height = Point.from_tuple(dimensions)
         return \
             Image \
               (
@@ -1079,7 +1094,7 @@ class Image :
     def create_for_array(format, dimensions, arr, rowstride_bytes) :
         "calls pixman_image_create_bits_noclear on arr, which must be" \
         " a Python array.array object."
-        width, height = Vector.from_tuple(dimensions)
+        width, height = Point.from_tuple(dimensions)
         address, length = arr.buffer_info()
         assert height * rowstride_bytes <= length * arr.itemsize
         result = Image \
@@ -1188,7 +1203,7 @@ class Image :
         if not isinstance(alpha_map, Image) :
             raise TypeError("alpha_map must be an Image")
         #end if
-        origin = Vector.from_tuple(origin)
+        origin = Point.from_tuple(origin)
         assert origin.isint()
         pixman.pixman_image_set_alpha_map(self._pmobj, alpha_map._pmobj, origin.x, origin.y)
         return \
