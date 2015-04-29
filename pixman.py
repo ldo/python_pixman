@@ -1120,7 +1120,7 @@ class FilterParams :
             and
                 nr_values == width * height + 2
             )
-        c_values = ct.malloc(nr_values * ct.sizeof(PIXMAN.fixed_t))
+        c_values = libc.malloc(nr_values * ct.sizeof(PIXMAN.fixed_t))
         if c_values == None :
             raise MemoryError("unable to allocate filter array")
         #end if
