@@ -551,7 +551,7 @@ pixman.pixman_image_get_format.restype = PIXMAN.format_code_t
 pixman.pixman_image_get_format.argtypes = (ct.c_void_p,)
 pixman.pixman_filter_create_separable_convolution.restype = ct.c_void_p
 pixman.pixman_filter_create_separable_convolution.argtypes = (ct.c_void_p, PIXMAN.fixed_t, PIXMAN.fixed_t, PIXMAN.kernel_t, PIXMAN.kernel_t, PIXMAN.kernel_t, PIXMAN.kernel_t, ct.c_int, ct.c_int)
-pixman.pixman_image_fill_rectangles.restype = ct.c_bool
+pixman.pixman_image_fill_rectangles.restype = ct.c_bool # not used
 pixman.pixman_image_fill_rectangles.argtypes = (PIXMAN.op_t, ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_void_p)
 pixman.pixman_image_fill_boxes.restype = ct.c_bool
 pixman.pixman_image_fill_boxes.argtypes = (PIXMAN.op_t, ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_void_p)
@@ -1445,35 +1445,21 @@ class Image :
     #end format
 
     def fill_rectangles(self, op, colour, rects) :
-        "fills the specified sequence of rectangles (16-bit coords only) using" \
-        " the given colour and operator."
-        c_colour = colour.to_pixman()
-        nr_rects = len(rects)
-        c_rects = (PIXMAN.rectangle16_t * nr_rects)()
-        for i in range(nr_rects) :
-            c_rects[i] = rects[i].to_pixman_rect16()
-        #end for
-        if not pixman.pixman_image_fill_rectangles(op, self._pmobj, ct.byref(c_colour), nr_rects, ct.byref(c_rects)) :
-            raise MemoryError("pixman_image_fill_rectangles failure")
-        #end if
-        return \
-            self
-    #end fill_rectangles
-
-    def fill_boxes(self, op, colour, boxes) :
         "fills the specified sequence of rectangles using the given colour and operator."
+        # actually calls pixman_image_fill_boxes. I can’t be bothered with
+        # pixman_image_fill_rectangles because that only handles 16-bit coords.
         c_colour = colour.to_pixman()
-        nr_boxes = len(boxes)
+        nr_boxes = len(rects)
         c_boxes = (PIXMAN.box32_t * nr_boxes)()
         for i in range(nr_boxes) :
-            c_boxes[i] = boxes[i].to_pixman_box()
+            c_boxes[i] = rects[i].to_pixman_box()
         #end for
         if not pixman.pixman_image_fill_boxes(op, self._pmobj, ct.byref(c_colour), nr_boxes, ct.byref(c_boxes)) :
             raise MemoryError("pixman_image_fill_boxes failure")
         #end if
         return \
             self
-    #end fill_boxes
+    #end fill_rectangles
 
     # TODO: trapezoids
 
