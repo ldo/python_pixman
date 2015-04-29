@@ -1440,7 +1440,7 @@ class Image :
             self
     #end fill_rectangles
 
-    def fill_boxes(op, colour, boxes) :
+    def fill_boxes(self, op, colour, boxes) :
         c_colour = colour.to_pixman()
         nr_boxes = len(boxes)
         c_boxes = (PIXMAN.box32_t * nr_boxes)()
