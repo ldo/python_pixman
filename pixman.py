@@ -1445,6 +1445,8 @@ class Image :
     #end format
 
     def fill_rectangles(self, op, colour, rects) :
+        "fills the specified sequence of rectangles (16-bit coords only) using" \
+        " the given colour and operator."
         c_colour = colour.to_pixman()
         nr_rects = len(rects)
         c_rects = (PIXMAN.rectangle16_t * nr_rects)()
@@ -1459,6 +1461,7 @@ class Image :
     #end fill_rectangles
 
     def fill_boxes(self, op, colour, boxes) :
+        "fills the specified sequence of rectangles using the given colour and operator."
         c_colour = colour.to_pixman()
         nr_boxes = len(boxes)
         c_boxes = (PIXMAN.box32_t * nr_boxes)()
