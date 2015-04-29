@@ -1054,9 +1054,10 @@ class FilterParams :
 
     @staticmethod
     def create_separable_convolution(scale, reconstruct, sample, subsample_bits) :
-        "creates a separable convolution filter from the specified settings:" \
-        " scale is a Point, reconstruct and sample are pairs of PIXMAN.KERNEL_xxx" \
-        " values, and subsample_bits is a pair of integer number of bits to shift."
+        "creates a separable convolution filter (used for resampling images) from" \
+        " the specified settings: scale is a Point, reconstruct and sample are pairs" \
+        " of PIXMAN.KERNEL_xxx values, and subsample_bits is a pair of integer number" \
+        " of bits to shift."
         scale = Point.from_tuple(scale).to_pixman_fixed()
         subsample_bits = Point.from_tuple(subsample_bits).assert_isint()
         n_values = ct.c_int()
@@ -1269,15 +1270,17 @@ class Image :
     # TODO: set_transform
 
     def set_repeat(self, repeat) :
-        "sets a new PIXMAN.REPEAT_xxx value."
+        "sets a new PIXMAN.REPEAT_xxx value, indicating what values to return when" \
+        " trying to read pixels outside the image bounds."
         pixman.pixman_image_set_repeat(self._pmobj, repeat)
         return \
             self
     #end set_repeat
 
     def set_filter(self, filter, params) :
-        "sets the filter for the image. filter is a PIXMAN.FILTER_xxx value, while params" \
-        " must be a FilterParams object or None, depending on filter."
+        "sets the filter to be applied to pixel values read from the image. filter is" \
+        " a PIXMAN.FILTER_xxx value, while params must be a FilterParams object or None," \
+        " depending on filter."
         if (
                 (filter in (PIXMAN.FILTER_CONVOLUTION, PIXMAN.FILTER_SEPARABLE_CONVOLUTION))
             !=
@@ -1313,6 +1316,8 @@ class Image :
     #end set_source_clipping
 
     def set_alpha_map(self, alpha_map, origin) :
+        "specifies another Image from which to take the alpha channel, overriding" \
+        " the one from this Image."
         if not isinstance(alpha_map, Image) :
             raise TypeError("alpha_map must be an Image")
         #end if
@@ -1324,7 +1329,8 @@ class Image :
 
     @property
     def component_alpha(self) :
-        "whether the mask defines separate a, r, g, b alphas as opposed to a common alpha."
+        "whether the Image, when used as a mask, defines separate a, r, g, b alphas" \
+        " as opposed to a common alpha."
         return \
             pixman.pixman_image_get_component_alpha(self._pmobj)
     #end component_alpha
