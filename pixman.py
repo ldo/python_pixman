@@ -8,7 +8,7 @@
 from numbers import \
     Number
 import ctypes as ct
-import qahirah
+import qahirah as qah
 
 pixman = ct.cdll.LoadLibrary("libpixman-1.so.0")
 libc = ct.cdll.LoadLibrary("libc.so.6")
@@ -190,7 +190,45 @@ class PIXMAN :
     REGION_IN = 1
     REGION_PART = 2
 
-    # TODO: region16?
+    class region16_data_t(ct.Structure) :
+        _fields_ = \
+            [
+                ("size", ct.c_long),
+                ("numRects", ct.c_long),
+              # ("rects", box16_t * size),
+            ]
+    #end region16_data_t
+    region16_data_t_ptr = ct.POINTER(region16_data_t)
+
+    class rectangle16_t(ct.Structure) :
+        _fields_ = \
+            [
+                ("x", ct.c_short),
+                ("y", ct.c_short),
+                ("width", ct.c_ushort),
+                ("height", ct.c_ushort),
+            ]
+    #end rectangle16_t
+
+    class box16_t(ct.Structure) :
+        _fields_ = \
+            [
+                ("x1", ct.c_short),
+                ("y1", ct.c_short),
+                ("x2", ct.c_short),
+                ("y2", ct.c_short),
+            ]
+    #end box16_t
+    box16_t_ptr = ct.POINTER(box16_t)
+
+    class region16_t(ct.Structure) :
+        pass
+    region16_t._fields_ = \
+        [
+            ("extents", box16_t),
+            ("data", region16_data_t_ptr),
+        ]
+    #end region16_t
 
     class region32_data_t(ct.Structure) :
         _fields_ = \
@@ -388,7 +426,13 @@ class PIXMAN :
 #end PIXMAN
 
 # TODO: fixed-point and floating-point transformations
-# TODO: 16-bit regions?
+# Note there is only the minimum of 16-bit region support
+pixman.pixman_region_init.restype = None
+pixman.pixman_region_init.argtypes = (ct.c_void_p,)
+pixman.pixman_region_fini.restype = None
+pixman.pixman_region_fini.argtypes = (ct.c_void_p,)
+pixman.pixman_region_rectangles.restype = ct.c_void_p
+pixman.pixman_region_rectangles.argtypes = (ct.c_void_p, ct.c_void_p)
 
 pixman.pixman_region32_init.restype = None
 pixman.pixman_region32_init.argtypes = (ct.c_void_p,)
@@ -513,7 +557,7 @@ pixman.pixman_image_fill_boxes.restype = ct.c_bool
 pixman.pixman_image_fill_boxes.argtypes = (PIXMAN.op_t, ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_void_p)
 pixman.pixman_compute_composite_region.restype = ct.c_bool
 pixman.pixman_compute_composite_region.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_short, ct.c_short, ct.c_short, ct.c_short, ct.c_short, ct.c_short, ct.c_short, ct.c_short)
-pixman.pixman_image_composite.restype = None
+pixman.pixman_image_composite.restype = None # not used
 pixman.pixman_image_composite.argtypes = (PIXMAN.op_t, ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_short, ct.c_short, ct.c_short, ct.c_short, ct.c_short, ct.c_short, ct.c_short, ct.c_short)
 pixman.pixman_image_composite32.restype = None
 pixman.pixman_image_composite32.argtypes = (PIXMAN.op_t, ct.c_void_p, ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int)
@@ -541,15 +585,30 @@ def version_string() :
         pixman.pixman_version_string()
 #end version_string
 
-class Point(qahirah.Vector) :
-    "augment Vector with additional Pixman-specific functionality."
+class Point(qah.Vector) :
+    "augment qahirah.Vector with additional Pixman-specific functionality."
 
     __slots__ = () # to forestall typos
 
-    @staticmethod
-    def from_pixman_fixed(p) :
+    def isshortint(self) :
+        "are the components signed 16-bit integers."
         return \
-            Point \
+            qah.int_fits_bits(self.x, 16) and qah.int_fits_bits(self.y, 16)
+    #end isshortint
+
+    def assert_isshortint(self) :
+        "checks that the components are signed 16-bit integers."
+        if not self.isshortint() :
+            raise ValueError("components must be signed 16-bit integers")
+        #end if
+        return \
+            self
+    #end assert_isshortint
+
+    @classmethod
+    def from_pixman_fixed(celf, p) :
+        return \
+            celf \
               (
                 x = PIXMAN.fixed_t_double(p.x),
                 y = PIXMAN.fixed_t_double(p.y),
@@ -567,18 +626,54 @@ class Point(qahirah.Vector) :
 
 #end Point
 
-class Rect(qahirah.Rect) :
-    "augment Rect with additional Pixman-specific functionality."
+class Rect(qah.Rect) :
+    "augment qahirah.Rect with additional Pixman-specific functionality."
 
     __slots__ = () # to forestall typos
 
-    @staticmethod
-    def from_pixman_box(b) :
+    @classmethod
+    def from_pixman_box(celf, b) :
         return \
-            Rect.from_corners((b.x1, b.y1), (b.x2, b.y2))
+            celf.from_corners((b.x1, b.y1), (b.x2, b.y2))
     #end from_pixman_box
 
+    def isshortint(self) :
+        "are the components signed 16-bit integers."
+        return \
+            (
+                qah.int_fits_bits(self.left, 16)
+            and
+                qah.int_fits_bits(self.top, 16)
+            and
+                qah.int_fits_bits(self.width, 16)
+            and
+                qah.int_fits_bits(self.height, 16)
+            )
+    #end isshortint
+
+    def assert_isshortint(self) :
+        "checks that the components are signed 16-bit integers."
+        if not self.isshortint() :
+            raise ValueError("components must be signed 16-bit integers")
+        #end if
+        return \
+            self
+    #end assert_isshortint
+
+    def to_pixman_rect16(self) :
+        self.assert_isshortint()
+        return \
+            PIXMAN.rectangle16_t(self.left, self.top, self.width, self.height)
+    #end to_pixman_rect16
+
+    def to_pixman_rect(self) :
+        self.assert_isint()
+        return \
+            PIXMAN.rectangle32_t(self.left, self.top, self.width, self.height)
+    #end to_pixman_rect
+
     def to_pixman_box(self) :
+        self.assert_isint()
         return \
             PIXMAN.box32_t(self.left, self.top, self.right, self.bottom)
     #end to_pixman_box
@@ -591,7 +686,7 @@ class Region :
     __slots__ = ("_region",) # to forestall typos
 
     def __init__(self) :
-        self._region = PIXMAN.region32_t()
+        self._region = PIXMAN.region32_t() # structure must be initialized by caller
     #end __init__
 
     @staticmethod
@@ -605,7 +700,7 @@ class Region :
     @staticmethod
     def create_rect(rect) :
         result = Region()
-        assert rect.isint()
+        rect.assert_isint()
         pixman.pixman_region32_init_rect(ct.byref(result._region), rect.left, rect.top, rect.width, rect.height)
         return \
             result
@@ -617,7 +712,7 @@ class Region :
         nr_rects = len(rects)
         c_rects = (PIXMAN.box32_t * nr_rects)()
         for i in range(nr_rects) :
-            assert rects[i].isint()
+            rects[i].assert_isint()
             c_rects[i] = rects[i].to_pixman_box()
         #end for
         validated = pixman.pixman_region32_init_rects(ct.byref(result._region), ct.byref(c_rects), nr_rects)
@@ -628,7 +723,7 @@ class Region :
     @staticmethod
     def create_with_extents(extents) :
         result = Region()
-        assert extents.isint()
+        extents.assert_isint()
         c_extents = extents.to_pixman_box()
         pixman.pixman_region32_init_with_extents(ct.byref(result._region), ct.byref(c_extents))
         return \
@@ -654,8 +749,7 @@ class Region :
     #end __del__
 
     def translate(offset) :
-        offset = Point.from_tuple(offset)
-        assert offset.isint()
+        offset = Point.from_tuple(offset).assert_isint()
         pixman.pixman_region32_translate(ct.byref(self._region), offset.x, offset.y)
         return \
             self
@@ -698,7 +792,7 @@ class Region :
         if not isinstance(dest, Region) :
             raise TypeError("dest must be a Region")
         #end if
-        assert rect.isint()
+        rect.assert_isint()
         if not pixman.pixman_region32_intersect_rect(ct.byref(dest._region), ct.byref(self._region), rect.left, rect.top, rect.width, rect.height) :
             raise MemoryError("Pixman couldn’t intersect region")
         #end if
@@ -710,7 +804,7 @@ class Region :
         if not isinstance(dest, Region) :
             raise TypeError("dest must be a Region")
         #end if
-        assert rect.isint()
+        rect.assert_isint()
         if not pixman.pixman_region32_union_rect(ct.byref(dest._region), ct.byref(self._region), rect.left, rect.top, rect.width, rect.height) :
             raise MemoryError("Pixman couldn’t union region")
         #end if
@@ -733,7 +827,7 @@ class Region :
         if not isinstance(new_reg, Region) :
             raise TypeError("new_reg must be Region")
         #end if
-        assert inv_rect.isint()
+        inv_rect.assert_isint()
         c_inv_rect = inv_rect.to_pixman_box()
         if not pixman.pixman_region32_inverse(ct.byref(self._region), ct.byref(c_inv_rect), ct.byref(new_reg._region)) :
             raise MemoryError("Pixman couldn’t invert region")
@@ -743,8 +837,7 @@ class Region :
     #end inverse
 
     def contains_point(self, point, want_box = False) :
-        point = Point.from_tuple(point)
-        assert point.isint()
+        point = Point.from_tuple(point).assert_isint()
         if want_box :
             box = ct.pointer(PIXMAN.box32_t())
         else :
@@ -827,15 +920,15 @@ class Region :
 
 #end Region
 
-class Colour(qahirah.Colour) :
+class Colour(qah.Colour) :
     "augment Colour with additional Pixman-specific functionality."
 
     __slots__ = () # to forestall typos
 
-    @staticmethod
-    def from_pixman(c) :
+    @classmethod
+    def from_pixman(celf, c) :
         return \
-            Colour.from_rgba \
+            celf.from_rgba \
               ((
                 c.red / 65535,
                 c.green / 65535,
@@ -948,11 +1041,11 @@ class FilterParams :
         if c_values == None :
             raise MemoryError("unable to allocate filter array")
         #end if
-        c_values = ct.cast(c_values, PIXMAN.fixed_t_ptr)
-        c_values[0] = PIXMAN.int_to_fixed(width)
-        c_values[1] = PIXMAN.int_to_fixed(height)
+        cc_values = ct.cast(c_values, PIXMAN.fixed_t_ptr)
+        cc_values[0] = PIXMAN.int_to_fixed(width)
+        cc_values[1] = PIXMAN.int_to_fixed(height)
         for i in range(2, nr_values) :
-            c_values[i] = PIXMAN.double_to_fixed(values[i])
+            cc_values[i] = PIXMAN.double_to_fixed(values[i])
         #end for
         return \
             FilterParams(c_values, nr_values, False)
@@ -964,8 +1057,7 @@ class FilterParams :
         " scale is a Point, reconstruct and sample are pairs of PIXMAN.KERNEL_xxx" \
         " values, and subsample_bits is a pair of integer number of bits to shift."
         scale = Point.from_tuple(scale).to_pixman_fixed()
-        subsample_bits = Point.from_tuple(subsample_bits)
-        assert subsample_bits.isint()
+        subsample_bits = Point.from_tuple(subsample_bits).assert_isint()
         n_values = ct.c_int()
         values = pixman.pixman_filter_create_separable_convolution \
           (
@@ -1075,7 +1167,7 @@ class Image :
         c_centre = centre.to_pixman_fixed()
         c_stops, nr_stops = GradientStop.to_pixman_array(stops)
         return \
-            Image(pixman.pixman_image_create_conical_gradient(ct.byref(c_centre), PIXMAN.double_to_fixed(angle / qahirah.deg), ct.byref(stops), nr_stops))
+            Image(pixman.pixman_image_create_conical_gradient(ct.byref(c_centre), PIXMAN.double_to_fixed(angle / qah.deg), ct.byref(stops), nr_stops))
     #end create_conical_gradient
 
     @staticmethod
@@ -1203,8 +1295,7 @@ class Image :
         if not isinstance(alpha_map, Image) :
             raise TypeError("alpha_map must be an Image")
         #end if
-        origin = Point.from_tuple(origin)
-        assert origin.isint()
+        origin = Point.from_tuple(origin).assert_isint()
         pixman.pixman_image_set_alpha_map(self._pmobj, alpha_map._pmobj, origin.x, origin.y)
         return \
             self
@@ -1332,10 +1423,106 @@ class Image :
             pixman.pixman_image_get_format(self._pmobj)
     #end format
 
-    # TODO: fill rectangles/boxes, compositing
+    def fill_rectangles(self, op, colour, rects) :
+        c_colour = colour.to_pixman()
+        nr_rects = len(rects)
+        c_rects = (PIXMAN.rectangle16_t * nr_rects)()
+        for i in range(nr_rects) :
+            c_rects[i] = rects[i].to_pixman_rect16()
+        #end for
+        if not pixman.pixman_image_fill_rectangles(op, self._pmobj, ct.byref(c_colour), nr_rects, ct.byref(c_rects)) :
+            raise MemoryError("pixman_image_fill_rectangles failure")
+        #end if
+        return \
+            self
+    #end fill_rectangles
+
+    def fill_boxes(op, colour, boxes) :
+        c_colour = colour.to_pixman()
+        nr_boxes = len(boxes)
+        c_boxes = (PIXMAN.box32_t * nr_boxes)()
+        for i in range(nr_boxes) :
+            c_boxes[i] = boxes[i].to_pixman_box()
+        #end for
+        if not pixman.pixman_image_fill_boxes(op, self._pmobj, ct.byref(c_colour), nr_boxes, ct.byref(c_boxes)) :
+            raise MemoryError("pixman_image_fill_boxes failure")
+        #end if
+        return \
+            self
+    #end fill_boxes
 
     # TODO: trapezoids
 
 #end Image
+
+def compute_composite_region(region, src_image, mask_image, dest_image, src_pos, mask_pos, dest_pos, dimensions) :
+    # Note that Pixman does not (currently) provide a region32 version of this call.
+    # Since I don’t want to add full region16 support just for this one call, I create
+    # a temporary region16 and convert the result to the caller’s region32 afterwards.
+    # Just to add insult to injury, the Pixman source code makes use of an internal
+    # _pixman_compute_composite_region32 routine to do the work, then converts the
+    # result to a region16 before returning it to us.
+    if (
+            not isinstance(src_image, Image)
+        or
+            mask_image != None and not isinstance(mask_image, Image)
+        or
+            not isinstance(dest_image, Image)
+    ) :
+        raise TypeError("image args must be Image objects")
+    #end if
+    tmp_region = PIXMAN.region16_t()
+    src_pos = Point.from_tuple(src_pos).assert_isshortint()
+    if mask_image != None or mask_pos != None :
+        # “or”, not “and”: mask_pos must be specified if mask_image is specified
+        mask_pos = Point.from_tuple(mask_pos).assert_isshortint()
+    else :
+        mask_pos = Point(0, 0) # dummy
+    #end if
+    dest_pos = Point.from_tuple(dest_pos).assert_isshortint()
+    dimensions = Point.from_tuple(dimensions).assert_isshortint()
+    pixman.pixman_region_init(ct.byref(tmp_region))
+    if mask_image != None :
+        c_mask = mask_image._pmobj
+    else :
+        c_mask = None
+    #end if
+    pixman.pixman_compute_composite_region(ct.byref(tmp_region), src_image._pmobj, c_mask, dest_image._pmobj, src_pos.x, src_pos.y, mask_pos.x, mask_pos.y, dest_pos.x, dest_pos.y, dimensions.x, dimensions.y)
+      # returns false on empty region or allocation failure. Since I cannot distinguish
+      # these two cases, I ignore the result.
+    nr_rects = ct.c_int()
+    rects16 = pixman.pixman_region_rectangles(ct.byref(self._region), ct.byref(nr_rects))
+    nr_rects = nr_rects.value
+    rects16 = ct.cast(rects, PIXMAN.box16_t_ptr)
+    Region.create_rects(list(Rect.from_pixman_box(rects16[i]) for i in range(nr_rects))).copy(region)
+    pixman.pixman_region_fini(ct.byref(tmp_region))
+#end compute_composite_region
+
+def image_composite(op, src, mask, dest, src_pos, mask_pos, dest_pos, dimensions) :
+    if (
+            not isinstance(src, Image)
+        or
+            mask != None and not isinstance(mask, Image)
+        or
+            not isinstance(dest, Image)
+    ) :
+        raise TypeError("image args must be Image objects")
+    #end if
+    src_pos = Point.from_tuple(src_pos).assert_isint()
+    if mask != None or mask_pos != None :
+        # “or”, not “and”: mask_pos must be specified if mask is specified
+        mask_pos = Point.from_tuple(mask_pos).assert_isint()
+    else :
+        mask_pos = Point(0, 0) # dummy
+    #end if
+    dest_pos = Point.from_tuple(dest_pos).assert_isint()
+    dimensions = Point.from_tuple(dimensions).assert_isint()
+    if mask != None :
+        c_mask = mask._pmobj
+    else :
+        c_mask = None
+    #end if
+    pixman.pixman_image_composite32(op, src._pmobj, c_mask, dest._pmobj, src_pos.x, src_pos.y, mask_pos.x, mask_pos.y, dest_pos.x, dest_pos.y, dimensions.x, dimensions.y)
+#end image_composite
 
 # TODO: glyphs
