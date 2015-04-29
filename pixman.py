@@ -681,7 +681,13 @@ class Rect(qah.Rect) :
 #end Rect
 
 class Region :
-    "wrapper for a Pixman region32_t. Do not instantiate directly; use one of the create methods."
+    "wrapper for a Pixman region32_t. Do not instantiate directly; use one of the create" \
+    " methods.\n" \
+    "\n" \
+    "A Region is a collection of integer pixel coordinates with arbitrary connectivity (i.e." \
+    " it can consist of multiple discontiguous pieces with holes). It is represented as a" \
+    " sequence of rectangles, such that all coordinates within each rectangle are part of" \
+    " the Region."
 
     __slots__ = ("_region",) # to forestall typos
 
@@ -1019,7 +1025,7 @@ class FilterParams :
 
     @staticmethod
     def create_from_sequence(values) :
-        "creates a general convolution FilterParams from a sequence of coefficients." \
+        "creates a general convolution filter from a sequence of coefficients." \
         " The first two numbers must be the integer width and height of the convolution" \
         " kernel."
         nr_values = len(values)
@@ -1054,10 +1060,10 @@ class FilterParams :
 
     @staticmethod
     def create_separable_convolution(scale, reconstruct, sample, subsample_bits) :
-        "creates a separable convolution filter (used for resampling images) from" \
-        " the specified settings: scale is a Point, reconstruct and sample are pairs" \
-        " of PIXMAN.KERNEL_xxx values, and subsample_bits is a pair of integer number" \
-        " of bits to shift."
+        "creates a separable convolution filter (as a higher-quality way of resampling" \
+        " images than the non-convolution filters) from the specified settings: scale" \
+        " is a Point, reconstruct and sample are pairs of PIXMAN.KERNEL_xxx values," \
+        " and subsample_bits is a pair of integer number of bits to shift."
         scale = Point.from_tuple(scale).to_pixman_fixed()
         subsample_bits = Point.from_tuple(subsample_bits).assert_isint()
         n_values = ct.c_int()
