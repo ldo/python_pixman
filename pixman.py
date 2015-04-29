@@ -952,7 +952,7 @@ class Colour(qah.Colour) :
 
 class GradientStop :
     "representation of a Pixman gradient stop. x is a relative fraction in [0, 1] at which" \
-    " the specified colour is positioned."
+    " the specified Colour is positioned."
 
     def __init__(self, x, colour) :
         if not isinstance(x, Number) or not isinstance(colour, Colour) :
@@ -1097,7 +1097,13 @@ def fill(bits, stride, bpp, pos, dimensions, filler) :
 #end fill
 
 class Image :
-    "wrapper for a Pixman image. Do not instantiate directly; use the create methods."
+    "wrapper for a Pixman image. Do not instantiate directly; use the create methods.\n" \
+    "\n" \
+    "An Image can consist of a two-dimensional array of pixels of some given size, which" \
+    " can be both read (a source or mask) and written (a destination). Or it can consist" \
+    " of some solid colour, or a gradient consisting of a given sequence of colours. Solid" \
+    "and gradient images have no fixed extents, and can be sources or masks (?), but not" \
+    " destinations."
 
     __slots__ = \
         (
@@ -1135,7 +1141,7 @@ class Image :
 
     @staticmethod
     def create_solid_fill(colour) :
-        "creates an image whose content consists of a single solid colour."
+        "creates an image whose content consists of a single solid Colour."
         c_colour = colour.to_pixman()
         return \
             Image(pixman.pixman_image_create_solid_fill(ct.byref(c_colour)))
@@ -1143,6 +1149,9 @@ class Image :
 
     @staticmethod
     def create_linear_gradient(p1, p2, stops) :
+        "creates an image consisting of blends between the specified colours" \
+        " along the line connecting the two given points. stops must be a sequence" \
+        " of GradientStop objects."
         c_p1 = p1.to_pixman_fixed()
         c_p2 = p2.to_pixman_fixed()
         c_stops, nr_stops = GradientStop.to_pixman_array(stops)
@@ -1152,6 +1161,9 @@ class Image :
 
     @staticmethod
     def create_radial_gradient(inner, outer, inner_radius, outer_radius, stops) :
+        "creates an image consisting of blends between the specified colours" \
+        " arranged radially between the two points and corresponding radii. stops" \
+        " must be a sequence of GradientStop objects."
         c_inner = inner.to_pixman_fixed()
         c_outer = outer.to_pixman_fixed()
         c_inner_radius = PIXMAN.double_to_fixed(inner_radius)
@@ -1163,6 +1175,9 @@ class Image :
 
     @staticmethod
     def create_conical_gradient(centre, angle, stops) :
+        "creates an image consisting of blends between the specified colours" \
+        " arranged around a circle from the specified centre, starting and ending" \
+        " at the specified angle. stops must be a sequence of GradientStop objects."
         # for consistency, I expect angle in radians, even though underlying
         # Pixman call wants it in degrees
         c_centre = centre.to_pixman_fixed()
@@ -1186,8 +1201,11 @@ class Image :
 
     @staticmethod
     def create_for_array(format, dimensions, arr, rowstride_bytes) :
-        "calls pixman_image_create_bits_noclear on arr, which must be" \
-        " a Python array.array object."
+        "creates an Image whose pixels reside in arr, which must be" \
+        " a Python array.array object. format is a Pixman format code," \
+        " dimensions is an integer Point specifying the dimensions of the" \
+        " image, and rowstride_bytes specifies how many bytes each row" \
+        " of the image occupies."
         width, height = Point.from_tuple(dimensions)
         address, length = arr.buffer_info()
         assert height * rowstride_bytes <= length * arr.itemsize
