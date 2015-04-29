@@ -1515,7 +1515,7 @@ def compute_composite_region(region, src, mask, dest, src_pos, mask_pos, dest_po
     nr_rects = ct.c_int()
     rects16 = pixman.pixman_region_rectangles(ct.byref(self._region), ct.byref(nr_rects))
     nr_rects = nr_rects.value
-    rects16 = ct.cast(rects, PIXMAN.box16_t_ptr)
+    rects16 = ct.cast(rects16, PIXMAN.box16_t_ptr)
     Region.create_rects(list(Rect.from_pixman_box(rects16[i]) for i in range(nr_rects))).copy(region)
     pixman.pixman_region_fini(ct.byref(tmp_region))
 #end compute_composite_region
