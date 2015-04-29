@@ -904,7 +904,7 @@ def format_supported_source(format) :
         pixman.pixman_format_supported_source(format)
 #end format_supported_source
 
-class Filter :
+class FilterParams :
     "an array of Pixman filter coefficients. Do not instantiate directly; use one of the" \
     " create methods."
 
@@ -925,7 +925,7 @@ class Filter :
 
     @staticmethod
     def create_from_sequence(values) :
-        "creates a general convolution Filter from a sequence of coefficients." \
+        "creates a general convolution FilterParams from a sequence of coefficients." \
         " The first two numbers must be the integer width and height of the convolution" \
         " kernel."
         nr_values = len(values)
@@ -955,7 +955,7 @@ class Filter :
             c_values[i] = PIXMAN.double_to_fixed(values[i])
         #end for
         return \
-            Filter(c_values, nr_values, False)
+            FilterParams(c_values, nr_values, False)
     #end create_from_sequence
 
     @staticmethod
@@ -983,10 +983,10 @@ class Filter :
             raise MemoryError("unable to allocate separable convolution filter")
         #end if
         return \
-            Filter(values, n_values.value, True)
+            FilterParams(values, n_values.value, True)
     #end create_separable_convolution
 
-#end Filter
+#end FilterParams
 
 class Image :
     "wrapper for a Pixman image. Do not instantiate directly; use the create methods."
@@ -994,6 +994,7 @@ class Image :
     __slots__ = \
         (
             "_pmobj",
+            "_arr",
             "_destroy_func",
             "_destroy_func_data",
             "_memory_read_func",
@@ -1007,6 +1008,7 @@ class Image :
 
     def __init__(self, _pmobj) :
         self._pmobj = _pmobj
+        self._arr = None
         self._destroy_func = None
         self._destroy_func_data = None
         self._memory_read_func = None
@@ -1062,8 +1064,9 @@ class Image :
     #end create_conical_gradient
 
     @staticmethod
-    def create_bits(format, width, height, bits, rowstride_bytes, clear) :
+    def create_bits(format, dimensions, bits, rowstride_bytes, clear) :
         "low-level routine which expects bits to be a ctypes.c_void_p."
+        width, height = Vector.from_tuple(dimensions)
         return \
             Image \
               (
@@ -1071,6 +1074,23 @@ class Image :
                     (format, width, height, bits, rowstride_bytes)
               )
     #end create_bits
+
+    @staticmethod
+    def create_for_array(format, dimensions, arr, rowstride_bytes) :
+        "calls pixman_image_create_bits_noclear on arr, which must be" \
+        " a Python array.array object."
+        width, height = Vector.from_tuple(dimensions)
+        address, length = arr.buffer_info()
+        assert height * rowstride_bytes <= length * arr.itemsize
+        result = Image \
+          (
+            pixman.pixman_image_create_bits_no_clear(format, width, height, address, rowstride_bytes)
+              # no_clear because array object will always be initialized
+          )
+        result._arr = arr # to ensure it doesn't go away prematurely
+        return \
+            result
+    #end create_for_array
 
     @property
     def destroy_function(self) :
@@ -1129,7 +1149,7 @@ class Image :
 
     def set_filter(self, filter, params) :
         "sets the filter for the image. filter is a PIXMAN.FILTER_xxx value, while params" \
-        " must be a Filter object or None, depending on filter."
+        " must be a FilterParams object or None, depending on filter."
         if (
                 (filter in (PIXMAN.FILTER_CONVOLUTION, PIXMAN.FILTER_SEPARABLE_CONVOLUTION))
             !=
@@ -1138,8 +1158,8 @@ class Image :
             raise ValueError("params must be specified for convolution types but not otherwise")
         #end if
         if params != None :
-            if not isinstance(params, Filter) :
-                raise TypeError("params must be a Filter")
+            if not isinstance(params, FilterParams) :
+                raise TypeError("params must be a FilterParams object")
             #end if
             if params._separable != (filter == PIXMAN.FILTER_SEPARABLE_CONVOLUTION) :
                 raise ValueError("convolution separability mismatch")
