@@ -1118,39 +1118,25 @@ class Filter :
     #end __del__
 
     @staticmethod
-    def create_from_sequence(values) :
-        "creates a general convolution filter from a sequence of coefficients." \
-        " The first two numbers must be the integer width and height of the convolution" \
-        " kernel."
-        nr_values = len(values)
-        assert nr_values > 2
-        width = values[0]
-        height = values[1]
-        assert \
-            (
-                isinstance(width, int)
-            and
-                isinstance(height, int)
-            and
-                width > 0
-            and
-                height > 0
-            and
-                nr_values == width * height + 2
-            )
-        c_values = libc.malloc(nr_values * ct.sizeof(PIXMAN.fixed_t))
+    def create_convolution(dimensions, coeffs) :
+        "creates a general convolution filter from a dimensions.x * dimensions.y array" \
+        " of coefficients."
+        width, height = Point.from_tuple(dimensions).assert_isshortint()
+        nr_coeffs = len(coeffs)
+        assert width > 0 and height > 0 and nr_coeffs == width * height
+        c_values = libc.malloc((nr_coeffs + 2) * ct.sizeof(PIXMAN.fixed_t))
         if c_values == None :
             raise MemoryError("unable to allocate filter array")
         #end if
         cc_values = ct.cast(c_values, PIXMAN.fixed_t_ptr)
         cc_values[0] = PIXMAN.int_to_fixed(width)
         cc_values[1] = PIXMAN.int_to_fixed(height)
-        for i in range(2, nr_values) :
-            cc_values[i] = PIXMAN.double_to_fixed(values[i])
+        for i in range(nr_coeffs) :
+            cc_values[i + 2] = PIXMAN.double_to_fixed(coeffs[i])
         #end for
         return \
-            Filter(PIXMAN.FILTER_CONVOLUTION, c_values, nr_values)
-    #end create_from_sequence
+            Filter(PIXMAN.FILTER_CONVOLUTION, c_values, nr_coeffs + 2)
+    #end create_convolution
 
     @staticmethod
     def create_separable_convolution(scale, reconstruct, sample, subsample_bits) :
