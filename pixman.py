@@ -1492,42 +1492,49 @@ class Image :
 
     @property
     def data(self) :
+        "returns the pixel data pointer, or None if the image is not a bits image."
         return \
             pixman.pixman_image_get_data(self._pmobj)
     #end data
 
     @property
     def width(self) :
+        "returns the pixel width. Only valid for a bits image."
         return \
             pixman.pixman_image_get_width(self._pmobj)
     #end width
 
     @property
     def height(self) :
+        "returns the pixel height. Only valid for a bits image."
         return \
             pixman.pixman_image_get_height(self._pmobj)
     #end height
 
     @property
     def dimensions(self) :
+        "returns the pixel width and height. Only valid for a bits image."
         return \
             Point(self.width, self.height)
     #end dimensions
 
     @property
     def stride(self) :
+        "returns the pixel stride. Only valid for a bits image."
         return \
             pixman.pixman_image_get_stride(self._pmobj)
     #end stride
 
     @property
     def depth(self) :
+        "returns the pixel depth. Only valid for a bits image."
         return \
             pixman.pixman_image_get_depth(self._pmobj)
     #end depth
 
     @property
     def format(self) :
+        "returns the pixel format. Only valid for a bits image."
         return \
             pixman.pixman_image_get_format(self._pmobj)
     #end format
@@ -1550,6 +1557,22 @@ class Image :
     #end fill_rectangles
 
     # TODO: trapezoids
+
+    def create_cairo_surface(self) :
+        "creates a Cairo ImageSurface that accesses the pixels of this Image." \
+        " Only valid for a bits image."
+        if self.data == None :
+            raise ValueError("not a bits Image")
+        #end if
+        return \
+            qah.ImageSurface.create_for_data \
+              (
+                format = pixman_to_cairo_format[self.format],
+                dimensions = self.dimensions,
+                data = self.data,
+                stride = self.stride
+              )
+    #end create_cairo_surface
 
 #end Image
 
