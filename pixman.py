@@ -1284,32 +1284,32 @@ class Image :
     #end create_conical_gradient
 
     @staticmethod
-    def create_bits(format, dimensions, bits = None, rowstride_bytes = 0, clear = True) :
+    def create_bits(format, dimensions, bits = None, stride = 0, clear = True) :
         "low-level routine which expects bits to be a ctypes.c_void_p. clear is only" \
-        " meaningful if bits is None, so Pixman allocates the bits. rowstride_bytes" \
+        " meaningful if bits is None, so Pixman allocates the bits. stride" \
         " is only meaningful if bits is not None."
         width, height = Point.from_tuple(dimensions)
         return \
             Image \
               (
                 (pixman.pixman_image_create_bits_no_clear, pixman.pixman_image_create_bits)[clear]
-                    (format, width, height, bits, rowstride_bytes)
+                    (format, width, height, bits, stride)
               )
     #end create_bits
 
     @staticmethod
-    def create_for_array(format, dimensions, arr, rowstride_bytes) :
+    def create_for_array(format, dimensions, arr, stride) :
         "creates an Image whose pixels reside in arr, which must be" \
         " a Python array.array object. format is a Pixman format code," \
         " dimensions is an integer Point specifying the dimensions of the" \
-        " image, and rowstride_bytes specifies how many bytes each row" \
-        " of the image occupies."
+        " image, and stride specifies how many bytes each row of the image" \
+        " occupies."
         width, height = Point.from_tuple(dimensions)
         address, length = arr.buffer_info()
-        assert height * rowstride_bytes <= length * arr.itemsize
+        assert height * stride <= length * arr.itemsize
         result = Image \
           (
-            pixman.pixman_image_create_bits_no_clear(format, width, height, address, rowstride_bytes)
+            pixman.pixman_image_create_bits_no_clear(format, width, height, address, stride)
               # thought I would use no_clear because array object will always be initialized
               # but in fact this makes no difference for caller-allocated bits
           )
