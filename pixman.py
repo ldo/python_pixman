@@ -1611,7 +1611,7 @@ def image_composite(op, src, mask, dest, src_pos, mask_pos, dest_pos, dimensions
     " Point specifying the top left corner of the portion of src to read, mask_pos" \
     " similarly for mask (if not None), and dest_pos is the top left corner of dest" \
     " to store the result. dimensions is a Point defining the common dimensions" \
-    " of the  portions of all the images to use."
+    " of the portions of all the images to use."
     if (
             not isinstance(src, Image)
         or
