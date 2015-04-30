@@ -1272,7 +1272,7 @@ class Image :
     #end create_conical_gradient
 
     @staticmethod
-    def create_bits(format, dimensions, bits, rowstride_bytes, clear = True) :
+    def create_bits(format, dimensions, bits = None, rowstride_bytes = 0, clear = True) :
         "low-level routine which expects bits to be a ctypes.c_void_p. clear is only" \
         " meaningful if bits is None, so Pixman allocates the bits. rowstride_bytes" \
         " is only meaningful if bits is not None."
@@ -1516,6 +1516,12 @@ class Image :
         return \
             pixman.pixman_image_get_height(self._pmobj)
     #end height
+
+    @property
+    def dimensions(self) :
+        return \
+            Point(self.width, self.height)
+    #end dimensions
 
     @property
     def stride(self) :
