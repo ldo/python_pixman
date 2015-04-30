@@ -1004,23 +1004,30 @@ class Colour(qah.Colour) :
 
     @classmethod
     def from_pixman(celf, c) :
-        return \
-            celf.from_rgba \
+        alpha = c.alpha / 65535
+        try :
+            # convert from premultiplied alpha
+            result = celf.from_rgba \
               ((
-                c.red / 65535,
-                c.green / 65535,
-                c.blue / 65535,
-                c.alpha / 65535,
+                c.red / 65535 / alpha,
+                c.green / 65535 / alpha,
+                c.blue / 65535 / alpha,
+                alpha,
               ))
+        except (ZeroDivisionError, OverflowError) :
+            result = celf.from_rgba((0, 0, 0, alpha))
+        #end try
+        return \
+            result
     #end from_pixman
 
     def to_pixman(self) :
         return \
             PIXMAN.color_t \
-              (
-                red = round(self.r * 65535),
-                green = round(self.g * 65535),
-                blue = round(self.b * 65535),
+              ( # convert to premultiplied alpha
+                red = round(self.r * self.a * 65535),
+                green = round(self.g * self.a * 65535),
+                blue = round(self.b * self.a * 65535),
                 alpha = round(self.a * 65535),
               )
     #end to_pixman
