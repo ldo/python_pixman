@@ -175,7 +175,9 @@ class PIXMAN :
     OP_OVERLAY = 0x32
     OP_DARKEN = 0x33
     OP_LIGHTEN = 0x34
+    OP_COLOUR_DODGE = 0x35
     OP_COLOR_DODGE = 0x35
+    OP_COLOUR_BURN = 0x36
     OP_COLOR_BURN = 0x36
     OP_HARD_LIGHT = 0x37
     OP_SOFT_LIGHT = 0x38
@@ -183,6 +185,7 @@ class PIXMAN :
     OP_EXCLUSION = 0x3a
     OP_HSL_HUE = 0x3b
     OP_HSL_SATURATION = 0x3c
+    OP_HSL_COLOUR = 0x3d
     OP_HSL_COLOR = 0x3d
     OP_HSL_LUMINOSITY = 0x3e
 
@@ -332,6 +335,7 @@ class PIXMAN :
     TYPE_A = 1
     TYPE_ARGB = 2
     TYPE_ABGR = 3
+    TYPE_COLOUR = 4
     TYPE_COLOR = 4
     TYPE_GRAY = 5
     TYPE_YUY2 = 6
@@ -340,7 +344,8 @@ class PIXMAN :
     TYPE_RGBA = 9
     TYPE_ARGB_SRGB = 10
 
-    FORMAT_COLOR = lambda f : FORMAT_TYPE(f) in (TYPE_ARGB, TYPE_ABGR, TYPE_BGRA, TYPE_RGBA)
+    FORMAT_COLOUR = lambda f : FORMAT_TYPE(f) in (TYPE_ARGB, TYPE_ABGR, TYPE_BGRA, TYPE_RGBA)
+    FORMAT_COLOR = FORMAT_COLOUR
 
     format_code_t = ct.c_uint
     # values for format_code_t -- 32 bits per pixel
@@ -385,12 +390,12 @@ class PIXMAN :
     a2r2g2b2 = FORMAT(8,TYPE_ARGB,2,2,2,2)
     a2b2g2r2 = FORMAT(8,TYPE_ABGR,2,2,2,2)
 
-    c8 = FORMAT(8,TYPE_COLOR,0,0,0,0)
+    c8 = FORMAT(8,TYPE_COLOUR,0,0,0,0)
     g8 = FORMAT(8,TYPE_GRAY,0,0,0,0)
 
     x4a4 = FORMAT(8,TYPE_A,4,0,0,0)
 
-    x4c4 = FORMAT(8,TYPE_COLOR,0,0,0,0)
+    x4c4 = FORMAT(8,TYPE_COLOUR,0,0,0,0)
     x4g4 = FORMAT(8,TYPE_GRAY,0,0,0,0)
 
     # values for format_code_t -- 4 bits per pixel
@@ -400,7 +405,7 @@ class PIXMAN :
     a1r1g1b1 = FORMAT(4,TYPE_ARGB,1,1,1,1)
     a1b1g1r1 = FORMAT(4,TYPE_ABGR,1,1,1,1)
 
-    c4 = FORMAT(4,TYPE_COLOR,0,0,0,0)
+    c4 = FORMAT(4,TYPE_COLOUR,0,0,0,0)
     g4 = FORMAT(4,TYPE_GRAY,0,0,0,0)
 
     # values for format_code_t -- 1 bit per pixel
