@@ -1139,11 +1139,12 @@ class Filter :
     #end create_convolution
 
     @staticmethod
-    def create_separable_convolution(scale, reconstruct, sample, subsample_bits) :
-        "creates a separable convolution filter (as a higher-quality way of resampling" \
-        " images than the non-convolution filters) from the specified settings: scale" \
-        " is a Point, reconstruct and sample are pairs of PIXMAN.KERNEL_xxx values," \
-        " and subsample_bits is a pair of integer number of bits to shift."
+    def create_resample(scale, reconstruct, sample, subsample_bits) :
+        "creates a specific form of separable convolution filter (as a higher-quality" \
+        " way of resampling images than the non-convolution filters) from the" \
+        " specified settings: scale is a Point, reconstruct and sample are pairs" \
+        " of PIXMAN.KERNEL_xxx values, and subsample_bits is a pair of integer number" \
+        " of bits to shift for subpixel sampling."
         scale = Point.from_tuple(scale).to_pixman_fixed()
         subsample_bits = Point.from_tuple(subsample_bits).assert_isint()
         n_values = ct.c_int()
@@ -1164,7 +1165,7 @@ class Filter :
         #end if
         return \
             Filter(PIXMAN.FILTER_SEPARABLE_CONVOLUTION, values, n_values.value)
-    #end create_separable_convolution
+    #end create_resample
 
 #end Filter
 # predefined filters:
