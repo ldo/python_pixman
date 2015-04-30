@@ -1,4 +1,7 @@
 """A Python 3 wrapper for the Pixman pixel-manipulation library <http://www.pixman.org/>.
+
+Pixman is not well documented. But I have tried to fill in docstrings and comments
+where I can, based on looking at the source code and my own experiments.
 """
 #+
 # Copyright 2015 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
