@@ -1167,6 +1167,50 @@ class Filter :
             Filter(PIXMAN.FILTER_SEPARABLE_CONVOLUTION, values, n_values.value)
     #end create_resample
 
+    @staticmethod
+    def create_convolution_from_function(func, radius, gain = 1.0, peak = None, clip_peak = True) :
+        "creates a convolution filter with coefficients given by evaluating the" \
+        " specified function. func is a function of two real arguments (x, y) each in" \
+        " [-1, +1]. radius is an integer Point so that the number of coefficients" \
+        " will be (2 * radius.x + 1) * (2 * radius.y + 1). gain, if not None, is the" \
+        " sum of the convolution coefficients; they will be scaled to sum to this value." \
+        " If gain is None, no scaling will be applied. peak, if not None, is the" \
+        " special-case coefficient for the original pixel coordinate, otherwise if None," \
+        " the function value is used. if clip_peak, then the peak is included in the gain" \
+        " scaling; otherwise it is not."
+        radius = Point.from_tuple(radius).assert_isint()
+        coeffs = []
+        total = 0.0
+        for y in range(- radius.y, radius.y + 1) :
+            for x in range(- radius.x, radius.x + 1) :
+                if x == 0 and y == 0 and peak != None :
+                    coeff = peak
+                    if clip_peak :
+                        total += coeff
+                    #end if
+                else :
+                    coeff = func(x / radius.x, y / radius.y)
+                    total += coeff
+                #end if
+                coeffs.append(coeff)
+            #end for
+        #end for
+        if gain != None :
+            offs = 0
+            total /= gain
+            for y in range(- radius.y, radius.y + 1) :
+                for x in range(- radius.x, radius.x + 1) :
+                    if x != 0 or y != 0 or clip_peak :
+                        coeffs[offs] /= total
+                    #end if
+                    offs += 1
+                #end for
+            #end for
+        #end if
+        return \
+            Filter.create_convolution((2 * radius.x + 1, 2 * radius.y + 1), coeffs)
+    #end create_convolution_from_function
+
 #end Filter
 # predefined filters:
 Filter.FAST = Filter(PIXMAN.FILTER_FAST, None, 0)
