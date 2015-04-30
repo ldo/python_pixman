@@ -1285,7 +1285,7 @@ class Image :
         "low-level routine which expects bits to be a ctypes.c_void_p. clear is only" \
         " meaningful if bits is None, so Pixman allocates the bits. stride" \
         " is only meaningful if bits is not None."
-        width, height = Point.from_tuple(dimensions)
+        width, height = Point.from_tuple(dimensions).assert_isint()
         return \
             Image \
               (
@@ -1301,7 +1301,7 @@ class Image :
         " dimensions is an integer Point specifying the dimensions of the" \
         " image, and stride specifies how many bytes each row of the image" \
         " occupies."
-        width, height = Point.from_tuple(dimensions)
+        width, height = Point.from_tuple(dimensions).assert_isint()
         address, length = arr.buffer_info()
         assert height * stride <= length * arr.itemsize
         result = Image \
