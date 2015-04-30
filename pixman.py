@@ -1274,7 +1274,8 @@ class Image :
     @staticmethod
     def create_bits(format, dimensions, bits, rowstride_bytes, clear = True) :
         "low-level routine which expects bits to be a ctypes.c_void_p. clear is only" \
-        " meaningful if bits is None, so Pixman allocates the bits."
+        " meaningful if bits is None, so Pixman allocates the bits. rowstride_bytes" \
+        " is only meaningful if bits is not None."
         width, height = Point.from_tuple(dimensions)
         return \
             Image \
