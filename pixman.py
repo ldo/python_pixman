@@ -1097,16 +1097,17 @@ def format_supported_source(format) :
         pixman.pixman_format_supported_source(format)
 #end format_supported_source
 
-class FilterParams :
-    "an array of Pixman filter coefficients. Do not instantiate directly; use one of the" \
-    " create methods."
+class Filter :
+    "a Pixman filter type together with associated coefficients, if any. Do not" \
+    " instantiate directly; use one of the create methods, or one of the predefined" \
+    " instances FAST, GOOD, BEST, NEAREST or BILINEAR."
 
-    __slots__ = ("_values", "_nr_values", "_separable") # to forestall typos
+    __slots__ = ("_type", "_values", "_nr_values") # to forestall typos
 
-    def __init__(self, _values, _nr_values, _separable) :
+    def __init__(self, _type, _values, _nr_values) :
+        self._type = _type
         self._values = _values
         self._nr_values = _nr_values
-        self._separable = _separable
     #end __init__
 
     def __del__(self) :
@@ -1148,7 +1149,7 @@ class FilterParams :
             cc_values[i] = PIXMAN.double_to_fixed(values[i])
         #end for
         return \
-            FilterParams(c_values, nr_values, False)
+            Filter(PIXMAN.FILTER_CONVOLUTION, c_values, nr_values)
     #end create_from_sequence
 
     @staticmethod
@@ -1176,10 +1177,16 @@ class FilterParams :
             raise MemoryError("unable to allocate separable convolution filter")
         #end if
         return \
-            FilterParams(values, n_values.value, True)
+            Filter(PIXMAN.FILTER_SEPARABLE_CONVOLUTION, values, n_values.value)
     #end create_separable_convolution
 
-#end FilterParams
+#end Filter
+# predefined filters:
+Filter.FAST = Filter(PIXMAN.FILTER_FAST, None, 0)
+Filter.GOOD = Filter(PIXMAN.FILTER_GOOD, None, 0)
+Filter.BEST = Filter(PIXMAN.FILTER_BEST, None, 0)
+Filter.NEAREST = Filter(PIXMAN.FILTER_NEAREST, None, 0)
+Filter.BILINEAR = Filter(PIXMAN.FILTER_BILINEAR, None, 0)
 
 def blt(src_bits, dst_bits, src_stride, dst_stride, src_bpp, dst_bpp, src_pos, dest_pos, dimensions) :
     "low-level blit routine. returns success/failure (i.e. unsupported format)."
@@ -1377,31 +1384,13 @@ class Image :
             self
     #end set_repeat
 
-    def set_filter(self, filter, params) :
-        "sets the filter to be applied to pixel values read from the image. filter is" \
-        " a PIXMAN.FILTER_xxx value, while params must be a FilterParams object or None," \
-        " depending on filter."
-        if (
-                (filter in (PIXMAN.FILTER_CONVOLUTION, PIXMAN.FILTER_SEPARABLE_CONVOLUTION))
-            !=
-                (params != None)
-        ) :
-            raise ValueError("params must be specified for convolution types but not otherwise")
+    def set_filter(self, filter) :
+        "sets the filter, which must be a Filter object, to be applied to pixel values" \
+        " read from the image."
+        if not isinstance(filter, Filter) :
+            raise TypeError("filter must be a Filter")
         #end if
-        if params != None :
-            if not isinstance(params, FilterParams) :
-                raise TypeError("params must be a FilterParams object")
-            #end if
-            if params._separable != (filter == PIXMAN.FILTER_SEPARABLE_CONVOLUTION) :
-                raise ValueError("convolution separability mismatch")
-            #end if
-            values = params._values
-            nr_values = params._nr_values
-        else :
-            values = None
-            nr_values = 0
-        #end if
-        if not pixman.pixman_image_set_filter(self._pmobj, filter, values, nr_values) :
+        if not pixman.pixman_image_set_filter(self._pmobj, filter._type, filter._values, filter._nr_values) :
             raise RuntimeError("Pixman failed to set filter")
         #end if
         # Pixman copies the params array, so I don’t need to keep a reference
