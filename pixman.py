@@ -1139,7 +1139,7 @@ class Filter :
     #end create_convolution
 
     @staticmethod
-    def create_resample(scale, reconstruct, sample, subsample_bits) :
+    def create_resampler(scale, reconstruct, sample, subsample_bits) :
         "creates a specific form of separable convolution filter (as a higher-quality" \
         " way of resampling images than the non-convolution filters) from the" \
         " specified settings: scale is a Point, reconstruct and sample are pairs" \
@@ -1165,7 +1165,7 @@ class Filter :
         #end if
         return \
             Filter(PIXMAN.FILTER_SEPARABLE_CONVOLUTION, values, n_values.value)
-    #end create_resample
+    #end create_resampler
 
     @staticmethod
     def create_convolution_from_function(func, radius, gain = 1.0, peak = None, clip_peak = True) :
