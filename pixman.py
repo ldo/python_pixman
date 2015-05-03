@@ -1618,6 +1618,20 @@ class Image :
               )
     #end create_cairo_surface
 
+    @staticmethod
+    def create_from_cairo_surface(surf) :
+        "creates a bits Image that accesses the pixels of a Cairo ImageSurface."
+        surf.flush()
+        return \
+            Image.create_bits \
+              (
+                format = cairo_to_pixman_format[surf.format],
+                dimensions = surf.dimensions,
+                bits = surf.data,
+                stride = surf.stride
+              )
+    #end create_from_cairo_surface
+
 #end Image
 
 def compute_composite_region(region, src, mask, dest, src_pos, mask_pos, dest_pos, dimensions) :
