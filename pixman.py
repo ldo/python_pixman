@@ -1602,6 +1602,12 @@ class Image :
 
     # TODO: trapezoids
 
+    def create_like(self) :
+        "creates a bits Image with the same format and dimensions as this one."
+        return \
+            Image.create_bits(format = self.format, dimensions = self.dimensions)
+    #end create_like
+
     def create_cairo_surface(self) :
         "creates a Cairo ImageSurface that accesses the pixels of this Image." \
         " Only valid for a bits image."
