@@ -1247,6 +1247,7 @@ class Image :
         (
             "_pmobj",
             "_arr",
+            "_cairo_surface",
             "_destroy_func",
             "_destroy_func_data",
             "_memory_read_func",
@@ -1261,6 +1262,7 @@ class Image :
     def __init__(self, _pmobj) :
         self._pmobj = _pmobj
         self._arr = None
+        self._cairo_surface = None
         self._destroy_func = None
         self._destroy_func_data = None
         self._memory_read_func = None
@@ -1614,7 +1616,7 @@ class Image :
         if self.data == None :
             raise ValueError("not a bits Image")
         #end if
-        return \
+        result = \
             qah.ImageSurface.create_for_data \
               (
                 format = pixman_to_cairo_format[self.format],
@@ -1622,13 +1624,17 @@ class Image :
                 data = self.data,
                 stride = self.stride
               )
+        result.user_data["pixman_image"] = self
+          # just to ensure the pixels don’t go away before the ImageSurface does
+        return \
+            result
     #end create_cairo_surface
 
     @staticmethod
     def create_from_cairo_surface(surf) :
         "creates a bits Image that accesses the pixels of a Cairo ImageSurface."
         surf.flush()
-        return \
+        result = \
             Image.create_bits \
               (
                 format = cairo_to_pixman_format[surf.format],
@@ -1636,6 +1642,10 @@ class Image :
                 bits = surf.data,
                 stride = surf.stride
               )
+        result._cairo_surface = surf
+          # just to ensure the pixels don’t go away before the Image does
+        return \
+            result
     #end create_from_cairo_surface
 
 #end Image
