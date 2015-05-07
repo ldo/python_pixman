@@ -23,10 +23,14 @@ sources for drawing operations, not destinations.
 
 For convenience, the Image object provides a create_cairo_surface
 method that returns a Cairo ImageSurface wrapping the same pixels as
-the Image. Of course, this only works for bits images. This allows
-you to mix Cairo drawing operations with Pixman pixel manipulations,
-provided you follow the rules explained in the Cairo documentation
-about using flush() and mark_dirty().
+the Image. Of course, this only works for bits images. Conversely,
+there is also a create_from_cairo_surface method that takes a Cairo
+ImageSurface and returns a Pixman bits Image wrapping the same pixels.
+
+These two interconversions allow you to mix Cairo drawing operations
+with Pixman pixel manipulations, provided you follow the rules
+explained in the Cairo documentation about using flush() and
+mark_dirty().
 
 Another important object is the Filter. Whereas the underlying C call
 looks like
