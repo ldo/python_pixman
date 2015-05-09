@@ -56,5 +56,9 @@ take parameters. What Pixman calls a “separable convolution”, I just
 call a “resampler”, because that seems to be its purpose: to resample
 an image in various high-quality ways when scaling.
 
+Examples of python_pixman in action are available in the
+[python_pixman_examples](https://github.com/ldo/python_pixman_examples)
+repository.
+
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
-2015 May 1
+2015 May 9
