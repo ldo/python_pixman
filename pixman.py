@@ -8,6 +8,7 @@ where I can, based on looking at the source code and my own experiments.
 # Licensed under the GNU Lesser General Public License v2.1 or later.
 #-
 
+import math
 from numbers import \
     Number
 import ctypes as ct
@@ -1178,7 +1179,7 @@ class Filter :
         " special-case coefficient for the original pixel coordinate, otherwise if None," \
         " the function value is used. if clip_peak, then the peak is included in the gain" \
         " scaling; otherwise it is not."
-        radius = Point.from_tuple(radius).assert_isint()
+        radius = math.ceil(Point.from_tuple(radius))
         coeffs = []
         total = 0.0
         for y in range(- radius.y, radius.y + 1) :
