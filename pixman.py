@@ -1421,7 +1421,9 @@ class Image :
     def set_filter(self, filter) :
         "sets the filter, which must be a Filter object, to be applied to pixel values" \
         " read from the image."
-        if not isinstance(filter, Filter) :
+        if filter == None :
+            filter = Filter.NEAREST # default
+        elif not isinstance(filter, Filter) :
             raise TypeError("filter must be a Filter")
         #end if
         if not pixman.pixman_image_set_filter(self._pmobj, filter._type, filter._values, filter._nr_values) :
