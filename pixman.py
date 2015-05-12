@@ -1242,7 +1242,7 @@ class Filter :
                 #end for
                 display += ")"
             #end for
-            result = "Filter.CONVOLUTION(%s, (%s))" % (repr(Point(width, height)), display)
+            result = "Filter.CONVOLUTION(%d × %d, (%s))" % (width, height, display)
         elif self._type == PIXMAN.FILTER_SEPARABLE_CONVOLUTION :
             assert self._nr_values >= 4
             params = ct.cast(self._values, PIXMAN.fixed_t_ptr)
@@ -1271,7 +1271,7 @@ class Filter :
                 display += ", "
                 doing_height = True
             #end while
-            result = "Filter.SEPARABLE_CONVOLUTION(%s, %s, %s)" % (repr(Point(width, height)), repr(Point(x_phase_bits, y_phase_bits)), display)
+            result = "Filter.SEPARABLE_CONVOLUTION(%d × %d, (1 << %d) × (1 << %d), %s)" % (width, height, x_phase_bits, y_phase_bits, display)
         else :
             assert self._nr_values == 0
             result = \
