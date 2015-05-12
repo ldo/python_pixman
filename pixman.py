@@ -1212,6 +1212,85 @@ class Filter :
             Filter.create_convolution((2 * radius.x + 1, 2 * radius.y + 1), coeffs)
     #end create_convolution_from_function
 
+    def __repr__(self) :
+        "returns a human-readable representation of this Filter."
+        assert \
+            (
+                (self._values != None)
+            ==
+                (self._type in (PIXMAN.FILTER_SEPARABLE_CONVOLUTION, PIXMAN.FILTER_CONVOLUTION))
+            )
+        if self._type == PIXMAN.FILTER_CONVOLUTION :
+            assert self._nr_values >= 2
+            params = ct.cast(self._values, PIXMAN.fixed_t_ptr)
+            width = params[0] >> 16
+            height = params[1] >> 16
+            assert self._nr_values == width * height + 2
+            display = ""
+            offs = 1
+            for i in range(height) :
+                if i != 0 :
+                    display += ", "
+                #end if
+                display += "("
+                for j in range(width) :
+                    if j != 0 :
+                        display += ", "
+                    #end if
+                    offs += 1
+                    display += "%g" % PIXMAN.fixed_to_double(params[offs])
+                #end for
+                display += ")"
+            #end for
+            result = "Filter.CONVOLUTION(%s, (%s))" % (repr(Point(width, height)), display)
+        elif self._type == PIXMAN.FILTER_SEPARABLE_CONVOLUTION :
+            assert self._nr_values >= 4
+            params = ct.cast(self._values, PIXMAN.fixed_t_ptr)
+            width = params[0] >> 16
+            height = params[1] >> 16
+            x_phase_bits = params[2] >> 16
+            y_phase_bits = params[3] >> 16
+            nr_x_phases = 1 << x_phase_bits
+            nr_y_phases = 1 << y_phase_bits
+            assert self._nr_values == 4 + width * nr_x_phases + height * nr_y_phases
+            display = ""
+            offs = 3
+            doing_height = False
+            while True :
+                display += "("
+                for i in range((width, height)[doing_height]) :
+                    if i != 0 :
+                        display += ", "
+                    #end if
+                    offs += 1
+                    display += "%g" % PIXMAN.fixed_to_double(params[offs])
+                #end for
+                display += ")"
+                if doing_height :
+                    break
+                display += ", "
+                doing_height = True
+            #end while
+            result = "Filter.SEPARABLE_CONVOLUTION(%s, %s, %s)" % (repr(Point(width, height)), repr(Point(x_phase_bits, y_phase_bits)), display)
+        else :
+            assert self._nr_values == 0
+            result = \
+                (
+                    "Filter."
+                +
+                    {
+                        PIXMAN.FILTER_FAST : "FAST",
+                        PIXMAN.FILTER_GOOD : "GOOD",
+                        PIXMAN.FILTER_BEST : "BEST",
+                        PIXMAN.FILTER_NEAREST : "NEAREST",
+                        PIXMAN.FILTER_BILINEAR : "BILINEAR",
+                    }.get(self._type, "?")
+                )
+        #end if
+        return \
+            result
+    #end __repr__
+
 #end Filter
 # predefined filters:
 Filter.FAST = Filter(PIXMAN.FILTER_FAST, None, 0)
