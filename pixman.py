@@ -1288,15 +1288,39 @@ class Filter :
     def __truediv__(self, factor) :
         "division of the coefficients of a convolution filter by a scalar."
         if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Number) :
-            dimensions, params = self.params
-            params = list(params[i] / factor for i in range(dimensions.x * dimensions.y))
-            result = Filter.create_convolution(dimensions, params)
+            dimensions, coeffs = self.params
+            coeffs = list(coeffs[i] / factor for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, coeffs)
         else :
             result = NotImplemented
         #end if
         return \
             result
     #end __truediv__
+
+    def offset(self, steps) :
+        "this Filter must be a convolution filter, and steps must be an integer Point" \
+        " giving the number of row and column steps. The result is a new Filter with the" \
+        " coefficients moved by the specified offsets."
+        if self._type != PIXMAN.FILTER_CONVOLUTION :
+            raise ValueError("only defined for convolution Filter")
+        #end if
+        steps = Point.from_tuple(steps).assert_isint()
+        old_dims, old_coeffs = self.params
+        new_dims = old_dims + Point(abs(steps.x), abs(steps.y))
+        # might be useful to look for rows/columns of all-zero coeffs at opposite
+        # edges from steps (e.g. added as a result of a previous offset operation in the
+        # opposite direction) and discard them.
+        new_coeffs = [0] * new_dims.x * new_dims.y
+        for i in range(old_dims.y) :
+            for j in range(old_dims.x) :
+                new_coeffs[(i + max(steps.y, 0)) * new_dims.x + j + max(steps.x, 0)] = \
+                    old_coeffs[i * old_dims.x + j]
+            #end for
+        #end for
+        return \
+            Filter.create_convolution(new_dims, new_coeffs)
+    #end offset
 
     def __repr__(self) :
         "returns a human-readable representation of this Filter."
