@@ -1139,6 +1139,29 @@ class Filter :
             Filter(PIXMAN.FILTER_CONVOLUTION, c_values, nr_coeffs + 2)
     #end create_convolution
 
+    @property
+    def params(self) :
+        "returns a tuple of (dimensions, coeffs) for a convolution Filter."
+        if self._type != PIXMAN.FILTER_CONVOLUTION :
+            raise ValueError("only defined for convolution Filter")
+        #end if
+        assert self._nr_values >= 2
+        params = ct.cast(self._values, PIXMAN.fixed_t_ptr)
+        width = params[0] >> 16
+        height = params[1] >> 16
+        assert self._nr_values == width * height + 2
+        coeffs = []
+        offs = 1
+        for i in range(height) :
+            for j in range(width) :
+                offs += 1
+                coeffs.append(PIXMAN.fixed_to_double(params[offs]))
+            #end for
+        #end for
+        return \
+            (Point(width, height), coeffs)
+    #end params
+
     @staticmethod
     def create_resampler(scale, reconstruct, sample, subsample_bits) :
         "creates a specific form of separable convolution filter (as a higher-quality" \
@@ -1211,6 +1234,69 @@ class Filter :
         return \
             Filter.create_convolution((2 * radius.x + 1, 2 * radius.y + 1), coeffs)
     #end create_convolution_from_function
+
+    def __add__(f1, f2) :
+        "addition of corresponding coefficients of two convolution filters."
+        if f1._type == PIXMAN.FILTER_CONVOLUTION and isinstance(f2, Filter) and f2._type == PIXMAN.FILTER_CONVOLUTION :
+            params1 = f1.params
+            params2 = f2.params
+            dimensions = params1[0]
+            if dimensions != params2[0] :
+                raise ValueError("convolution kernels must have same dimensions")
+            #end if
+            params = list(params1[1][i] + params2[1][i] for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, params)
+        else :
+            result = NotImplemented
+        #end if
+        return \
+            result
+    #end __add__
+
+    def __sub__(f1, f2) :
+        "subtraction of corresponding coefficients of two convolution filters."
+        if f1._type == PIXMAN.FILTER_CONVOLUTION and isinstance(f2, Filter) and f2._type == PIXMAN.FILTER_CONVOLUTION :
+            params1 = f1.params
+            params2 = f2.params
+            dimensions = params1[0]
+            if dimensions != params2[0] :
+                raise ValueError("convolution kernels must have same dimensions")
+            #end if
+            params = list(params1[1][i] - params2[1][i] for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, params)
+        else :
+            result = NotImplemented
+        #end if
+        return \
+            result
+    #end __sub__
+
+    def __mul__(self, factor) :
+        "multiplication of the coefficients of a convolution filter by a scalar."
+        if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Number) :
+            dimensions, params = self.params
+            params = list(params[i] * factor for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, params)
+        else :
+            result = NotImplemented
+        #end if
+        return \
+            result
+    #end __mul__
+    __rmul__ = __mul__
+
+    def __truediv__(self, factor) :
+        "division of the coefficients of a convolution filter by a scalar."
+        if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Number) :
+            dimensions, params = self.params
+            params = list(params[i] / factor for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, params)
+        else :
+            result = NotImplemented
+        #end if
+        return \
+            result
+    #end __truediv__
 
     def __repr__(self) :
         "returns a human-readable representation of this Filter."
