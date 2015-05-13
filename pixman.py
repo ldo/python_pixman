@@ -1322,6 +1322,43 @@ class Filter :
             Filter.create_convolution(new_dims, new_coeffs)
     #end offset
 
+    def resize(self, dimensions, value = 0.0) :
+        "this Filter must be a convolution filter, and dimensions must be an integer Point" \
+        " giving the new Filter dimensions. The result is a new Filter containing a copy" \
+        " of the coefficients with thins one, but with the specified number of coefficient" \
+        " rows and columns added or subtracted. Added coefficients are initialized to value."
+        if self._type != PIXMAN.FILTER_CONVOLUTION :
+            raise ValueError("only defined for convolution Filter")
+        #end if
+        old_dimensions, old_coeffs = self.params
+        dimensions = Point.from_tuple(dimensions).assert_isint()
+        assert dimensions.x > 0 and dimensions.y > 0
+        coeffs = [value] * dimensions.x * dimensions.y
+        for i in range(min(old_dimensions.y, dimensions.y)) :
+            for j in range(min(old_dimensions.x, dimensions.x)) :
+                    coeffs \
+                        [
+                            (i + max((dimensions.y - old_dimensions.y) // 2, 0)) * dimensions.x
+                        +
+                            j
+                        +
+                            max((dimensions.x - old_dimensions.x) // 2, 0)
+                        ] \
+                = \
+                    old_coeffs \
+                        [
+                            (i + max((old_dimensions.y - dimensions.y) // 2, 0)) * old_dimensions.x
+                        +
+                            j
+                        +
+                            max((old_dimensions.x - dimensions.x) // 2, 0)
+                        ]
+            #end for
+        #end for
+        return \
+            Filter.create_convolution(dimensions, coeffs)
+    #end resize
+
     def __repr__(self) :
         "returns a human-readable representation of this Filter."
         assert \
