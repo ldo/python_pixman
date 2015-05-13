@@ -1121,8 +1121,11 @@ class Filter :
     @staticmethod
     def create_convolution(dimensions, coeffs) :
         "creates a general convolution filter from a dimensions.x * dimensions.y array" \
-        " of coefficients."
+        " of coefficients. The dimensions must be odd."
         width, height = Point.from_tuple(dimensions).assert_isshortint()
+        if width % 2 == 0 or height % 2 == 0 :
+            raise ValueError("dimensions must be odd")
+        #end if
         nr_coeffs = len(coeffs)
         assert width > 0 and height > 0 and nr_coeffs == width * height
         c_values = libc.malloc((nr_coeffs + 2) * ct.sizeof(PIXMAN.fixed_t))
