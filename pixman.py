@@ -1380,6 +1380,52 @@ class Filter :
             Filter.create_convolution(dimensions, coeffs)
     #end resize
 
+    def clip(self, fmin = None, fmax = None) :
+        "this Filter must be a convolution filter, and fmin and fmax must also be convolution" \
+        " Filters if specified, with the same dimensions as this one. Returns a new Filter" \
+        " with the components clipped to the specified ranges, not less than the corresponding" \
+        " components of fmin if specified, and not greater than the corresponding components" \
+        " of fmax if specified."
+        if self._type != PIXMAN.FILTER_CONVOLUTION :
+            raise ValueError("only defined for convolution Filter")
+        #end if
+        if (
+                fmin != None and (not isinstance(fmin, Filter) or fmin._type != PIXMAN.FILTER_CONVOLUTION)
+            or
+                fmax != None and (not isinstance(fmax, Filter) or fmax._type != PIXMAN.FILTER_CONVOLUTION)
+        ) :
+            raise ValueError("fmin and fmax must be convolution Filters or None")
+        #end if
+        dimensions, coeffs = self.params
+        if fmin != None :
+            dimensions_min, coeffs_min = fmin.params
+        #end if
+        if fmax != None :
+            dimensions_max, coeffs_max = fmax.params
+        #end if
+        if (
+                fmin != None and dimensions_min != dimensions
+            or
+                fmax != None and dimensions_max != dimensions
+        ) :
+            raise ValueError("fmin and fmax, if specified, must have same dimensions as this Filter")
+        #end if
+        for i in range(dimensions.y) :
+            for j in range(dimensions.x) :
+                coeff = coeffs[i * dimensions.x + j]
+                if fmin != None :
+                    coeff = max(coeffs_min[i * dimensions.x + j], coeff)
+                #end if
+                if fmax != None :
+                    coeff = min(coeffs_max[i * dimensions.x + j], coeff)
+                #end if
+                coeffs[i * dimensions.x + j] = coeff
+            #end for
+        #end for
+        return \
+            Filter.create_convolution(dimensions, coeffs)
+    #end clip
+
     def __repr__(self) :
         "returns a human-readable representation of this Filter."
         assert \
