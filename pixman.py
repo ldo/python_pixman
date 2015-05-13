@@ -1274,6 +1274,24 @@ class Filter :
             result
     #end __sub__
 
+    def __neg__(self) :
+        "unary negation of convolution filter components."
+        if self._type == PIXMAN.FILTER_CONVOLUTION :
+            dimensions, coeffs = self.params
+            coeffs = list(- coeffs[i] for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, coeffs)
+        else :
+            raise NotImplementedError
+        #end if
+        return \
+            result
+    #end __neg_-
+
+    def __pos__(self) :
+        return \
+            self
+    #end __pos__
+
     def __mul__(self, factor) :
         "multiplication of the coefficients of a convolution filter by a scalar."
         if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Number) :
