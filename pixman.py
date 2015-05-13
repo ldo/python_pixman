@@ -1307,14 +1307,14 @@ class Filter :
         #end if
         steps = Point.from_tuple(steps).assert_isint()
         old_dims, old_coeffs = self.params
-        new_dims = old_dims + Point(abs(steps.x), abs(steps.y))
+        new_dims = old_dims + 2 * Point(abs(steps.x), abs(steps.y))
         # might be useful to look for rows/columns of all-zero coeffs at opposite
         # edges from steps (e.g. added as a result of a previous offset operation in the
         # opposite direction) and discard them.
         new_coeffs = [0] * new_dims.x * new_dims.y
         for i in range(old_dims.y) :
             for j in range(old_dims.x) :
-                new_coeffs[(i + max(steps.y, 0)) * new_dims.x + j + max(steps.x, 0)] = \
+                new_coeffs[(i + 2 * max(steps.y, 0)) * new_dims.x + j + 2 * max(steps.x, 0)] = \
                     old_coeffs[i * old_dims.x + j]
             #end for
         #end for
