@@ -1247,8 +1247,8 @@ class Filter :
             if dimensions != params2[0] :
                 raise ValueError("convolution kernels must have same dimensions")
             #end if
-            params = list(params1[1][i] + params2[1][i] for i in range(dimensions.x * dimensions.y))
-            result = Filter.create_convolution(dimensions, params)
+            coeffs = list(params1[1][i] + params2[1][i] for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, coeffs)
         else :
             result = NotImplemented
         #end if
@@ -1265,8 +1265,8 @@ class Filter :
             if dimensions != params2[0] :
                 raise ValueError("convolution kernels must have same dimensions")
             #end if
-            params = list(params1[1][i] - params2[1][i] for i in range(dimensions.x * dimensions.y))
-            result = Filter.create_convolution(dimensions, params)
+            coeffs = list(params1[1][i] - params2[1][i] for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, coeffs)
         else :
             result = NotImplemented
         #end if
@@ -1277,9 +1277,9 @@ class Filter :
     def __mul__(self, factor) :
         "multiplication of the coefficients of a convolution filter by a scalar."
         if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Number) :
-            dimensions, params = self.params
-            params = list(params[i] * factor for i in range(dimensions.x * dimensions.y))
-            result = Filter.create_convolution(dimensions, params)
+            dimensions, coeffs = self.params
+            coeffs = list(coeffs[i] * factor for i in range(dimensions.x * dimensions.y))
+            result = Filter.create_convolution(dimensions, coeffs)
         else :
             result = NotImplemented
         #end if
