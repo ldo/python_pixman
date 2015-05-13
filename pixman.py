@@ -1645,8 +1645,9 @@ class Image :
     #end set_repeat
 
     def set_filter(self, filter) :
-        "sets the filter, which must be a Filter object, to be applied to pixel values" \
-        " read from the image."
+        "sets the filter, which must be a Filter object or None, to be applied to" \
+        " pixel values read from the image. If filter is None, then the default" \
+        " filter (Filter.NEAREST) is applied."
         if filter == None :
             filter = Filter.NEAREST # default
         elif not isinstance(filter, Filter) :
