@@ -1394,7 +1394,7 @@ class Filter :
             or
                 fmax != None and (not isinstance(fmax, Filter) or fmax._type != PIXMAN.FILTER_CONVOLUTION)
         ) :
-            raise ValueError("fmin and fmax must be convolution Filters or None")
+            raise TypeError("fmin and fmax must be convolution Filters or None")
         #end if
         dimensions, coeffs = self.params
         if fmin != None :
