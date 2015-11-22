@@ -341,6 +341,7 @@ class PIXMAN :
     TYPE_ABGR = 3
     TYPE_COLOUR = 4
     TYPE_COLOR = 4
+    TYPE_GREY = 5
     TYPE_GRAY = 5
     TYPE_YUY2 = 6
     TYPE_YV12 = 7
@@ -395,12 +396,12 @@ class PIXMAN :
     a2b2g2r2 = FORMAT(8,TYPE_ABGR,2,2,2,2)
 
     c8 = FORMAT(8,TYPE_COLOUR,0,0,0,0)
-    g8 = FORMAT(8,TYPE_GRAY,0,0,0,0)
+    g8 = FORMAT(8,TYPE_GREY,0,0,0,0)
 
     x4a4 = FORMAT(8,TYPE_A,4,0,0,0)
 
     x4c4 = FORMAT(8,TYPE_COLOUR,0,0,0,0)
-    x4g4 = FORMAT(8,TYPE_GRAY,0,0,0,0)
+    x4g4 = FORMAT(8,TYPE_GREY,0,0,0,0)
 
     # values for format_code_t -- 4 bits per pixel
     a4 = FORMAT(4,TYPE_A,4,0,0,0)
@@ -410,12 +411,12 @@ class PIXMAN :
     a1b1g1r1 = FORMAT(4,TYPE_ABGR,1,1,1,1)
 
     c4 = FORMAT(4,TYPE_COLOUR,0,0,0,0)
-    g4 = FORMAT(4,TYPE_GRAY,0,0,0,0)
+    g4 = FORMAT(4,TYPE_GREY,0,0,0,0)
 
     # values for format_code_t -- 1 bit per pixel
     a1 = FORMAT(1,TYPE_A,1,0,0,0)
 
-    g1 = FORMAT(1,TYPE_GRAY,0,0,0,0)
+    g1 = FORMAT(1,TYPE_GREY,0,0,0,0)
 
     # values for format_code_t -- YUV
     yuy2 = FORMAT(16,TYPE_YUY2,0,0,0,0)
