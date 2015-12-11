@@ -707,6 +707,71 @@ class Point(qah.Vector) :
 
 #end Point
 
+class Transform(qah.Matrix) :
+    "augment qahirah.Matrix with additional Pixman-specific functionality."
+
+    @classmethod
+    def from_matrix(celf, m) :
+        "converts a superclass instance to an instance of this class."
+        return \
+            celf \
+              (
+                xx = m.xx,
+                yx = m.yx,
+                xy = m.xy,
+                yy = m.yy,
+                x0 = m.x0,
+                y0 = m.y0,
+              )
+    #end from_matrix
+
+    @classmethod
+    def from_pixman_fixed(celf, m) :
+        return \
+            celf \
+              (
+                xx = PIXMAN.fixed_to_double(m.matrix[0][0]),
+                xy = PIXMAN.fixed_to_double(m.matrix[0][1]),
+                x0 = PIXMAN.fixed_to_double(m.matrix[0][2]),
+                yx = PIXMAN.fixed_to_double(m.matrix[1][0]),
+                yy = PIXMAN.fixed_to_double(m.matrix[1][1]),
+                y0 = PIXMAN.fixed_to_double(m.matrix[1][2]),
+                # FIXME: non-affine components ignored for now
+              )
+    #end from_pixman_fixed
+
+    def to_pixman_fixed(self) :
+        return \
+            PIXMAN.transform \
+              (
+                matrix =
+                    ((PIXMAN.fixed_t * 3) * 3)
+                    (
+                        (PIXMAN.fixed_t * 3)
+                          (
+                            PIXMAN.double_to_fixed(self.xx),
+                            PIXMAN.double_to_fixed(self.xy),
+                            PIXMAN.double_to_fixed(self.x0),
+                          ),
+                        (PIXMAN.fixed_t * 3)
+                          (
+                            PIXMAN.double_to_fixed(self.yx),
+                            PIXMAN.double_to_fixed(self.yy),
+                            PIXMAN.double_to_fixed(self.y0),
+                          ),
+                        (PIXMAN.fixed_t * 3)
+                          (
+                            PIXMAN.double_to_fixed(0),
+                            PIXMAN.double_to_fixed(0),
+                            PIXMAN.double_to_fixed(1),
+                          ),
+                    )
+              )
+    #end to_pixman_fixed
+
+#end Transform
+Transform.identity = Transform.from_matrix(qah.Matrix.identity)
+
 class Rect(qah.Rect) :
     "augment qahirah.Rect with additional Pixman-specific functionality."
 
@@ -1702,7 +1767,19 @@ class Image :
             self
     #end set_has_client_clip
 
-    # TODO: set_transform
+    def set_transform(self, transform) :
+        if transform != None :
+            c_transform = Transform.from_matrix(transform).to_pixman_fixed()
+            c_transform_ref = ct.pointer(c_transform)
+        else :
+            c_transform_ref = None
+        #end if
+        if not pixman.pixman_image_set_transform(self._pmobj, c_transform_ref) :
+            raise MemoryError("Pixman couldn’t set transform")
+        #end if
+        return \
+            self
+    #end set_transform
 
     def set_repeat(self, repeat) :
         "sets a new PIXMAN.REPEAT_xxx value, indicating what values to return when" \
