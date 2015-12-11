@@ -691,8 +691,8 @@ class Point(qah.Vector) :
         return \
             celf \
               (
-                x = PIXMAN.fixed_t_double(p.x),
-                y = PIXMAN.fixed_t_double(p.y),
+                x = PIXMAN.fixed_to_double(p.x),
+                y = PIXMAN.fixed_to_double(p.y),
               )
     #end from_pixman_fixed
 
