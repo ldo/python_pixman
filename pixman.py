@@ -671,6 +671,13 @@ class Point(qah.Vector) :
 
     __slots__ = () # to forestall typos
 
+    @classmethod
+    def from_vector(celf, v) :
+        "converts a superclass instance to an instance of this class."
+        return \
+            celf(tuple(v))
+    #end from_vector
+
     def isshortint(self) :
         "are the components signed 16-bit integers."
         return \
@@ -778,6 +785,13 @@ class Rect(qah.Rect) :
     __slots__ = () # to forestall typos
 
     @classmethod
+    def from_rect(celf, r) :
+        "converts a superclass instance to an instance of this class."
+        return \
+            celf(*tuple(r))
+    #end from_rect
+
+    @classmethod
     def from_pixman_box(celf, b) :
         return \
             celf.from_corners((b.x1, b.y1), (b.x2, b.y2))
@@ -864,8 +878,9 @@ class Region :
         nr_rects = len(rects)
         c_rects = (PIXMAN.box32_t * nr_rects)()
         for i in range(nr_rects) :
-            rects[i].assert_isint()
-            c_rects[i] = rects[i].to_pixman_box()
+            r = Rect.from_rect(rects[i])
+            r.assert_isint()
+            c_rects[i] = r.to_pixman_box()
         #end for
         validated = pixman.pixman_region32_init_rects(ct.byref(result._region), ct.byref(c_rects), nr_rects)
         return \
@@ -875,6 +890,7 @@ class Region :
     @staticmethod
     def create_with_extents(extents) :
         result = Region()
+        extents = Rect.from_rect(extents)
         extents.assert_isint()
         c_extents = extents.to_pixman_box()
         pixman.pixman_region32_init_with_extents(ct.byref(result._region), ct.byref(c_extents))
@@ -979,6 +995,7 @@ class Region :
         if not isinstance(new_reg, Region) :
             raise TypeError("new_reg must be Region")
         #end if
+        inv_rect = Rect.from_rect(inv_rect)
         inv_rect.assert_isint()
         c_inv_rect = inv_rect.to_pixman_box()
         if not pixman.pixman_region32_inverse(ct.byref(self._region), ct.byref(c_inv_rect), ct.byref(new_reg._region)) :
@@ -1006,7 +1023,7 @@ class Region :
     #end contains_point
 
     def contains_rectangle(self, prect) :
-        c_prect = prect.to_pixman_box()
+        c_prect = Rect.from_rect(prect).to_pixman_box()
         return \
             pixman.pixman_region32_contains_rectangle(ct.byref(self._region), ct.byref(c_prect))
     #end contains_rectangle
@@ -1060,7 +1077,7 @@ class Region :
 
     def reset(self, box) :
         "resets the Region to a simple rectangle."
-        c_box = box.to_pixman_box()
+        c_box = Rect.from_rect(box).to_pixman_box()
         pixman.pixman_region32_reset(ct.byref(self._region), ct.byref(c_box))
         return \
             self
@@ -1076,6 +1093,13 @@ class Colour(qah.Colour) :
     "augment Colour with additional Pixman-specific functionality."
 
     __slots__ = () # to forestall typos
+
+    @classmethod
+    def from_colour(celf, c) :
+        "converts a superclass instance to an instance of this class."
+        return \
+            celf(*tuple(c))
+    #end from_colour
 
     @classmethod
     def from_pixman(celf, c) :
@@ -1114,11 +1138,11 @@ class GradientStop :
     " the specified Colour is positioned."
 
     def __init__(self, x, colour) :
-        if not isinstance(x, Number) or not isinstance(colour, Colour) :
+        if not isinstance(x, Number) or not isinstance(colour, qah.Colour) :
             raise TypeError("invalid arg types")
         #end if
         self.x = x
-        self.colour = colour
+        self.colour = Colour.from_colour(colour)
     #end __init__
 
     def __repr__(self) :
@@ -1642,7 +1666,7 @@ class Image :
     @staticmethod
     def create_solid_fill(colour) :
         "creates an Image whose content consists of a single solid Colour."
-        c_colour = colour.to_pixman()
+        c_colour = Colour.from_colour(colour).to_pixman()
         return \
             Image(pixman.pixman_image_create_solid_fill(ct.byref(c_colour)))
     #end create_solid_fill
@@ -1652,8 +1676,8 @@ class Image :
         "creates an Image consisting of blends between the specified colours" \
         " along the line connecting the two given points. stops must be a sequence" \
         " of GradientStop objects."
-        c_p1 = p1.to_pixman_fixed()
-        c_p2 = p2.to_pixman_fixed()
+        c_p1 = Point.from_tuple(p1).to_pixman_fixed()
+        c_p2 = Point.from_tuple(p2).to_pixman_fixed()
         c_stops, nr_stops = GradientStop.to_pixman_array(stops)
         return \
             Image(pixman.pixman_image_create_linear_gradient(ct.byref(c_p1), ct.byref(c_p2), ct.byref(c_stops), nr_stops))
@@ -1664,8 +1688,8 @@ class Image :
         "creates an Image consisting of blends between the specified colours" \
         " arranged radially between the two points and corresponding radii. stops" \
         " must be a sequence of GradientStop objects."
-        c_inner = inner.to_pixman_fixed()
-        c_outer = outer.to_pixman_fixed()
+        c_inner = Point.from_tuple(inner).to_pixman_fixed()
+        c_outer = Point.from_tuple(outer).to_pixman_fixed()
         c_inner_radius = PIXMAN.double_to_fixed(inner_radius)
         c_outer_radius = PIXMAN.double_to_fixed(outer_radius)
         c_stops, nr_stops = GradientStop.to_pixman_array(stops)
@@ -1680,7 +1704,7 @@ class Image :
         " at the specified angle. stops must be a sequence of GradientStop objects."
         # for consistency, I expect angle in radians, even though underlying
         # Pixman call wants it in degrees
-        c_centre = centre.to_pixman_fixed()
+        c_centre = Point.from_tuple(centre).to_pixman_fixed()
         c_stops, nr_stops = GradientStop.to_pixman_array(stops)
         return \
             Image(pixman.pixman_image_create_conical_gradient(ct.byref(c_centre), PIXMAN.double_to_fixed(angle / qah.deg), ct.byref(c_stops), nr_stops))
@@ -1964,11 +1988,11 @@ class Image :
         "fills the specified sequence of rectangles using the given colour and operator."
         # actually calls pixman_image_fill_boxes. I can’t be bothered with
         # pixman_image_fill_rectangles because that only handles 16-bit coords.
-        c_colour = colour.to_pixman()
+        c_colour = Colour.from_colour(colour).to_pixman()
         nr_boxes = len(rects)
         c_boxes = (PIXMAN.box32_t * nr_boxes)()
         for i in range(nr_boxes) :
-            c_boxes[i] = rects[i].to_pixman_box()
+            c_boxes[i] = Rect.from_rect(rects[i]).to_pixman_box()
         #end for
         if not pixman.pixman_image_fill_boxes(op, self._pmobj, ct.byref(c_colour), nr_boxes, ct.byref(c_boxes)) :
             raise MemoryError("pixman_image_fill_boxes failure")
