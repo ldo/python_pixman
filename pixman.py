@@ -1147,7 +1147,7 @@ class GradientStop :
 
     def __repr__(self) :
         return \
-            "%s(%g, %s)" % (self.__class__.__name__, self.x, repr(self.colour))
+            "%s(%g, %s)" % (type(self).__name__, self.x, repr(self.colour))
     #end __repr__
 
     @staticmethod
