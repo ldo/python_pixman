@@ -788,7 +788,7 @@ class Rect(qah.Rect) :
     def from_rect(celf, r) :
         "converts a superclass instance to an instance of this class."
         return \
-            celf(*tuple(r))
+            celf(r.left, r.top, r.width, r.height)
     #end from_rect
 
     @classmethod
