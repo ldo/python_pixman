@@ -505,6 +505,7 @@ cairo_to_pixman_format = \
     }
 pixman_to_cairo_format = dict((cairo_to_pixman_format[k], k) for k in cairo_to_pixman_format)
   # and mapping back the other way
+pixman_to_cairo_format[PIXMAN.g8] = CAIRO.FORMAT_A8
 
 # TODO: fixed-point and floating-point transformations
 # Note there is only the minimum of 16-bit region support
