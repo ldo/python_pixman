@@ -10,7 +10,7 @@ where I can, based on looking at the source code and my own experiments.
 
 import math
 from numbers import \
-    Number
+    Real
 import ctypes as ct
 import qahirah as qah
 from qahirah import \
@@ -1139,7 +1139,7 @@ class GradientStop :
     " the specified Colour is positioned."
 
     def __init__(self, x, colour) :
-        if not isinstance(x, Number) or not isinstance(colour, qah.Colour) :
+        if not isinstance(x, Real) or not isinstance(colour, qah.Colour) :
             raise TypeError("invalid arg types")
         #end if
         self.x = x
@@ -1385,7 +1385,7 @@ class Filter :
 
     def __mul__(self, factor) :
         "multiplication of the coefficients of a convolution filter by a scalar."
-        if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Number) :
+        if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Real) :
             dimensions, coeffs = self.params
             coeffs = list(coeffs[i] * factor for i in range(dimensions.x * dimensions.y))
             result = Filter.create_convolution(dimensions, coeffs)
@@ -1399,7 +1399,7 @@ class Filter :
 
     def __truediv__(self, factor) :
         "division of the coefficients of a convolution filter by a scalar."
-        if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Number) :
+        if self._type == PIXMAN.FILTER_CONVOLUTION and isinstance(factor, Real) :
             dimensions, coeffs = self.params
             coeffs = list(coeffs[i] / factor for i in range(dimensions.x * dimensions.y))
             result = Filter.create_convolution(dimensions, coeffs)
