@@ -4,8 +4,9 @@ Python 3.2 or later. Pixman is useful for applying low-level pixel
 effects, like convolution filters.
 
 Installation is explained in the setup.py script. This module also
-requires [Qahirah](https://github.com/ldo/qahirah), my Cairo graphics
-wrapper, to be installed.
+requires Qahirah ([GitLab](https://gitlab.com/ldo/qahirah),
+[GitHub](https://github.com/ldo/qahirah)), my Cairo graphics wrapper,
+to be installed.
 
 Unfortunately, there is no proper documentation for Pixman itself. I
 have tried to make up for this by adding docstrings and other comments
@@ -57,8 +58,10 @@ call a “resampler”, because that seems to be its purpose: to resample
 an image in various high-quality ways when scaling.
 
 Examples of python_pixman in action are available in the
-[python_pixman_examples](https://github.com/ldo/python_pixman_examples)
+python_pixman_examples
+([GitLab](https://gitlab.com/ldo/python_pixman_examples),
+[GitHub](https://github.com/ldo/python_pixman_examples))
 repository.
 
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
-2015 May 9
+2017 April 9
