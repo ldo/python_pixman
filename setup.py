@@ -17,6 +17,6 @@ distutils.core.setup \
     description = "language bindings for the Pixman graphics library, for Python 3.2 or later",
     author = "Lawrence D'Oliveiro",
     author_email = "ldo@geek-central.gen.nz",
-    url = "http://github.com/ldo/python_pixman",
+    url = "https://github.com/ldo/python_pixman",
     py_modules = ["pixman"],
   )
