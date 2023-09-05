@@ -5,7 +5,7 @@ effects, like convolution filters.
 
 Installation is explained in the `setup.py` script. This module also
 requires Qahirah ([GitLab](https://gitlab.com/ldo/qahirah),
-[GitHub](https://github.com/ldo/qahirah)), my Cairo graphics wrapper,
+[BitBucket](https://bitbucket.org/ldo17/qahirah)), my Cairo graphics wrapper,
 to be installed.
 
 Unfortunately, there is no proper documentation for Pixman itself. I
@@ -62,8 +62,8 @@ an image in various high-quality ways when scaling.
 Examples of python_pixman in action are available in the
 python_pixman_examples
 ([GitLab](https://gitlab.com/ldo/python_pixman_examples),
-[GitHub](https://github.com/ldo/python_pixman_examples))
+[BitBucket](https://bitbucket.org/ldo17/python_pixman_examples))
 repository.
 
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
-2017 April 9
+2023 September 6
